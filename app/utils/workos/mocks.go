@@ -12,9 +12,21 @@ type MockClient struct {
 	mock.Mock
 }
 
-func (m *MockClient) JWKSURL() *url.URL {
+func (m *MockClient) JWKSURL() (*url.URL, error) {
 	ret := m.Called()
-	return ret.Get(0).(*url.URL)
+
+	var r0 *url.URL
+	if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*url.URL)
+	}
+
+	var r1 error
+	if r, ok := ret.Get(1).(error); ok {
+		r1 = r
+	}
+
+	return r0, r1
+
 }
 
 func (m *MockClient) CreateUser(ctx golly.Context, input CreateUserInput) (string, error) {

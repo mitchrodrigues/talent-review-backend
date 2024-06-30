@@ -22,16 +22,15 @@ type WorkosClient interface {
 	CreateUser(golly.Context, CreateUserInput) (string, error)
 	CreateOrganization(golly.Context, string, ...string) (string, error)
 	InviteUser(golly.Context, string, string, string) (string, error)
-	JWKSURL() *url.URL
+	JWKSURL() (*url.URL, error)
 }
 
 type DefaultClient struct {
 	ClientID string
 }
 
-func (d DefaultClient) JWKSURL() *url.URL {
-	jwksURL, _ := usermanagement.GetJWKSURL(d.ClientID)
-	return jwksURL
+func (d DefaultClient) JWKSURL() (*url.URL, error) {
+	return usermanagement.GetJWKSURL(d.ClientID)
 }
 
 type UserWebhookEvent struct {

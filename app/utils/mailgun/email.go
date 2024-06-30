@@ -47,7 +47,7 @@ func (c *DefaultClient) SendEmailTemplate(gctx golly.Context, email EmailWithTem
 
 	if email.Variables != nil {
 		for key, val := range email.Variables {
-			message.AddVariable(key, val)
+			_ = message.AddVariable(key, val)
 		}
 
 	}
