@@ -1,6 +1,6 @@
 module github.com/mitchrodrigues/talent-review-backend
 
-go 1.22.1
+go 1.22
 
 require (
 	github.com/gertd/go-pluralize v0.2.1
