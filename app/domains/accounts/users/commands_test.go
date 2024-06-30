@@ -292,6 +292,7 @@ func TestEditUserPerform(t *testing.T) {
 				assert.NoError(t, err)
 
 				changes := aggregate.Changes()
+
 				assert.Len(t, changes, 1)
 				event, ok := changes[0].Data.(UserUpdated)
 				assert.True(t, ok)

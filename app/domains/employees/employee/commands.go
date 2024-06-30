@@ -1,8 +1,6 @@
 package employee
 
 import (
-	"fmt"
-
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/eventsource"
 	"github.com/google/uuid"
@@ -24,9 +22,6 @@ type Create struct {
 }
 
 func (cmd Create) Perform(ctx golly.Context, aggregate eventsource.Aggregate) error {
-
-	fmt.Printf("\n\n%#v\n\n", cmd)
-
 	id, _ := uuid.NewV7()
 
 	tpe := IC

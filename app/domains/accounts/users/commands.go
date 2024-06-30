@@ -128,8 +128,7 @@ func (cmd EditUser) Perform(ctx golly.Context, aggregate eventsource.Aggregate) 
 		IdpID:     helpers.Coalesce(cmd.IdpID, user.IdpID),
 		FirstName: helpers.Coalesce(cmd.FirstName, user.FirstName),
 		LastName:  helpers.Coalesce(cmd.LastName, user.LastName),
-		// ProfilePicture: helpers.Coalesce(cmd.ProfilePicture, user.ProfilePicture),
-		Email: helpers.Coalesce(cmd.Email, user.Email),
+		Email:     helpers.Coalesce(cmd.Email, user.Email),
 	})
 
 	return nil
