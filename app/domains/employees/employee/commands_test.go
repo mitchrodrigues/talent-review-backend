@@ -1,0 +1,111 @@
+package employee
+
+import (
+	"context"
+	"testing"
+
+	"github.com/golly-go/golly"
+	"github.com/golly-go/plugins/orm"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+)
+
+// Test for Perform method
+func TestCreateEmployeePerform(t *testing.T) {
+
+	tests := []struct {
+		name      string
+		cmd       Create
+		expectErr bool
+		expected  Created
+	}{
+		{
+			name: "create IC employee",
+			cmd: Create{
+				Name:           "John Doe",
+				Email:          "john.doe@example.com",
+				OrganizationID: uuid.New(),
+				Manager:        false,
+				WorkerType:     "full-time",
+				Level:          3,
+			},
+			expectErr: false,
+			expected: Created{
+				Name:       "John Doe",
+				Email:      "john.doe@example.com",
+				Level:      3,
+				Type:       IC,
+				WorkerType: "full-time",
+			},
+		},
+		{
+			name: "create Manager employee",
+			cmd: Create{
+				Name:           "Jane Smith",
+				Email:          "jane.smith@example.com",
+				OrganizationID: uuid.New(),
+				Manager:        true,
+				WorkerType:     "part-time",
+				Level:          5,
+			},
+			expectErr: false,
+			expected: Created{
+				Name:       "Jane Smith",
+				Email:      "jane.smith@example.com",
+				Level:      5,
+				Type:       Manager,
+				WorkerType: "part-time",
+			},
+		},
+		{
+			name: "invalid level for IC",
+			cmd: Create{
+				Name:           "Invalid IC",
+				Email:          "invalid.ic@example.com",
+				OrganizationID: uuid.New(),
+				Manager:        false,
+				WorkerType:     "contractor",
+				Level:          6, // invalid level for IC
+			},
+			expectErr: true,
+		},
+		{
+			name: "invalid level for Manager",
+			cmd: Create{
+				Name:           "Invalid Manager",
+				Email:          "invalid.manager@example.com",
+				OrganizationID: uuid.New(),
+				Manager:        true,
+				WorkerType:     "full-time",
+				Level:          8, // invalid level for Manager
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := orm.CreateTestContext(golly.NewContext(context.TODO()))
+
+			aggregate := &Aggregate{}
+
+			err := tt.cmd.Perform(ctx, aggregate)
+			if tt.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+
+				changes := aggregate.Changes()
+				assert.Len(t, changes, 1)
+				event, ok := changes[0].Data.(Created)
+				assert.True(t, ok)
+				assert.Equal(t, tt.cmd.Name, event.Name)
+				assert.Equal(t, tt.cmd.Email, event.Email)
+				assert.Equal(t, tt.cmd.OrganizationID, event.OrganizationID)
+				assert.Equal(t, tt.expected.Level, event.Level)
+				assert.Equal(t, tt.expected.Type, event.Type)
+				assert.Equal(t, tt.expected.WorkerType, event.WorkerType)
+			}
+		})
+	}
+}
