@@ -7,7 +7,7 @@ env:
   GITHUB_REF: ${{ github.ref }}
   IMAGE: ${{ github.event.repository.name }}
   REGISTRY_HOSTNAME: us-west1-docker.pkg.dev/talent-review-428019/talent-radar
-  PROJECT_ID: earnest-cooler-381501
+  PROJECT_ID: talent-review-428019
   DEPLOYMENT_NAME: talent-radar-web
   PRODUCTION_CLUSTER_NAME: talent-radar
   PRODUCTION_CLUSTER_ZONE: us-west1
@@ -21,13 +21,13 @@ jobs:
           echo ${{ github }}
 
       - name: Set up Go 1.x
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: ^1.22
         id: go
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Get dependencies
         run: |
@@ -60,7 +60,7 @@ jobs:
         uses: "google-github-actions/setup-gcloud@v1"
 
       - run: |
-          gcloud auth configure-docker
+          gcloud auth configure-docker us-west1-docker.pkg.dev
 
       - name: Set outputs
         id: vars
