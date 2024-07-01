@@ -32,11 +32,13 @@ func JWTMiddleware(next golly.HandlerFunc) golly.HandlerFunc {
 		tok, err := jwt.ParseString(token, jwt.WithKeySet(jwkSet))
 
 		if err != nil {
+			c.Logger().Debugf("cannot parse token: %v", err)
 			goto next
 		}
 
 		user, err = FindUserByIDPId(c.Context, tok.Subject())
 		if err != nil {
+			c.Logger().Debugf("cannot find idp user: %v", err)
 			goto next
 		}
 

@@ -14,7 +14,7 @@ import (
 func Initializer(a golly.Application) error {
 	a.Routes().
 		Use(middleware.Recoverer, middleware.RequestLogger).
-		Use(accounts.JWTMiddleware, accounts.ScopeDBMiddleware).
+		Use(accounts.JWTMiddleware).
 		Use(middleware.Cors(middleware.CorsOptions{
 			AllowedHeaders:   a.Config.GetStringSlice("cors.headers"),
 			AllowedOrigins:   a.Config.GetStringSlice("cors.origins"),

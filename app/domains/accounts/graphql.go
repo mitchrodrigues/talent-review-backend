@@ -7,6 +7,7 @@ import (
 	"github.com/golly-go/golly/errors"
 	"github.com/golly-go/plugins/gql"
 	"github.com/graphql-go/graphql"
+	"github.com/mitchrodrigues/talent-review-backend/app/domains/common"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/helpers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/pagination"
@@ -95,7 +96,10 @@ var (
 			Resolve: gql.NewHandler(gql.Options{
 				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
 					return pagination.
-						NewCursorPaginationFromArgs(params.Args, []User{}).
+						NewCursorPaginationFromArgs(
+							params.Args,
+							[]User{},
+							common.OrganizationIDScopeForContext(ctx.Context)).
 						Paginate(ctx.Context)
 				},
 			}),

@@ -135,8 +135,6 @@ var (
 						team := params.Source.(Team)
 						var manager Employee
 
-						ident := identity.FromContext(ctx.Context)
-
 						if team.ManagerID == uuid.Nil {
 							return nil, nil
 						}
@@ -144,7 +142,6 @@ var (
 						err := orm.
 							NewDB(ctx.Context).
 							Model(manager).
-							Scopes(common.OrganizationIDScope(ident.OrganizationID)).
 							Find(&manager, "id = ?", team.ManagerID).
 							Error
 
@@ -186,8 +183,12 @@ var (
 			Resolve: gql.NewHandler(gql.Options{
 				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
 					return pagination.
-						NewCursorPaginationFromArgs(params.Args, []Employee{}).
-						SetScopes(employeeFilter.Scopes(params.Args["filter"])...).
+						NewCursorPaginationFromArgs(
+							params.Args,
+							[]Employee{},
+							employeeFilter.Scopes(params.Args["filter"])...,
+						).
+						SetScopes(common.OrganizationIDScopeForContext(ctx.Context)).
 						Paginate(ctx.Context)
 				},
 			}),
@@ -229,6 +230,7 @@ var (
 							params.Args,
 							[]Team{},
 							teamFilter.Scopes(params.Args["filter"])...).
+						SetScopes(common.OrganizationIDScopeForContext(ctx.Context)).
 						Paginate(ctx.Context)
 				},
 			}),
