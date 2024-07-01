@@ -27,7 +27,7 @@ func (cntr WebhookController) workosUserEvent(wctx golly.WebContext) {
 	user, err := FindUserByEmail(wctx.Context, event.Data.Email)
 	if err == nil {
 
-		err := eventsource.Call(wctx.Context, &user, users.EditUser{
+		err := eventsource.Call(wctx.Context, &user.Aggregate, users.EditUser{
 			ProfilePicture: event.Data.ProfilePictureURL,
 			FirstName:      event.Data.FirstName,
 			LastName:       event.Data.LastName,
