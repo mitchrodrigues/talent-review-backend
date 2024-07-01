@@ -1,5 +1,4 @@
 name: CI / CD
-
 on:
   push:
     branches: [main]
@@ -18,8 +17,8 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - name: Print GitHub Context
-        run: echo ${{ toJson(github) }}
+      - run: |
+          echo ${{ github }}
 
       - name: Set up Go 1.x
         uses: actions/setup-go@v5
@@ -34,8 +33,8 @@ jobs:
         run: |
           go get -v -t -d ./...
           if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
+              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+              dep ensure
           fi
 
       - name: Vet
@@ -51,16 +50,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - id: auth
-        uses: google-github-actions/auth@v1
+      # Setup gcloud CLI
+      - id: "auth"
+        uses: "google-github-actions/auth@v1"
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
 
-      - name: Configure Docker
-        run: |
+      - run: |
           gcloud auth configure-docker us-west1-docker.pkg.dev
 
       - name: Set outputs
@@ -89,13 +88,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - id: auth
-        uses: google-github-actions/auth@v1
+      - id: "auth"
+        uses: "google-github-actions/auth@v1"
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
-      - id: get-credentials
-        uses: google-github-actions/get-gke-credentials@v1
+      - id: "get-credentials"
+        uses: "google-github-actions/get-gke-credentials@v1"
         with:
           cluster_name: ${{ env.PRODUCTION_CLUSTER_NAME }}
           location: ${{ env.PRODUCTION_CLUSTER_ZONE }}
@@ -125,11 +124,10 @@ jobs:
         run: |
           kubectl wait --for=condition=complete --timeout=600s job/talent-review-migrations-${{ steps.vars.outputs.sha_short }}
 
-      - name: Update deployment
-        run: |
+      - run: |
           kubectl set image deployments/$DEPLOYMENT_NAME web="$REGISTRY_HOSTNAME"/"$IMAGE":"${{ steps.vars.outputs.sha_short }}"
 
-      - name: Wait for Deploy
+      - name: "Wait for Deploy"
         run: |
           kubectl rollout status deployment/$DEPLOYMENT_NAME
           kubectl get services -o wide
