@@ -29,23 +29,29 @@ func JWTMiddleware(next golly.HandlerFunc) golly.HandlerFunc {
 		ident := identity.Identity{}
 		token := DecodeAuthorizationHeader(c.Request().Header.Get("Authorization"))
 
-		tok, err := jwt.ParseString(token, jwt.WithKeySet(jwkSet))
+		if token != "" {
+			tok, err := jwt.ParseString(token, jwt.WithKeySet(jwkSet))
 
-		if err != nil {
-			c.Logger().Debugf("cannot parse token: %v", err)
-			goto next
+			if err != nil {
+				c.Logger().Debugf("cannot parse token: %v", err)
+				goto next
+			}
+
+			user, err = FindUserByIDPId(c.Context, tok.Subject())
+			if err != nil {
+				c.Logger().Debugf("cannot find idp user: %v", err)
+				goto next
+			}
+
+			ident = identity.Identity{
+				UID:            user.ID,
+				OrganizationID: user.OrganizationID,
+			}
+		} else {
+			c.Logger().Debug("empty token")
 		}
 
-		user, err = FindUserByIDPId(c.Context, tok.Subject())
-		if err != nil {
-			c.Logger().Debugf("cannot find idp user: %v", err)
-			goto next
-		}
-
-		ident = identity.Identity{
-			UID:            user.ID,
-			OrganizationID: user.OrganizationID,
-		}
+		goto next
 
 	next:
 		c.Context = passport.ToContext(c.Context, ident)
