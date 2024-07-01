@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/golly-go/golly"
 	"github.com/mitchrodrigues/talent-review-backend/app/initializers"
@@ -30,6 +31,10 @@ func printEnv(gctx golly.Context, cmd *cobra.Command, args []string) error {
 	keys := gctx.Config().AllKeys()
 	for _, key := range keys {
 		fmt.Printf("%s: %v", key, viper.Get(key))
+	}
+
+	for _, val := range os.Environ() {
+		fmt.Printf("%s\n", val)
 	}
 
 	return nil
