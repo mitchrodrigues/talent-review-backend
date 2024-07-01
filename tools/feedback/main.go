@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/golly-go/golly"
 	"github.com/mitchrodrigues/talent-review-backend/app/initializers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/mailgun"
@@ -35,7 +37,7 @@ func testEmail(gctx golly.Context, cmd *cobra.Command, args []string) error {
 		},
 		Variables: map[string]interface{}{
 			"name":        "Test Employee",
-			"feedbackURL": "http://localhost:9009/feedback/1234-1234",
+			"feedbackURL": fmt.Sprintf("%s/feedback/1234-1234", gctx.Config().GetString("app.frontend.url")),
 		},
 	})
 }

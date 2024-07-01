@@ -20,6 +20,12 @@ func configPreboot() error {
 func configInitializer(a golly.Application) error {
 	a.Config.SetDefault("bind", "localhost:9008")
 
+	a.Config.SetDefault("app", map[string]interface{}{
+		"frontend": map[string]interface{}{
+			"url": "http://localhost:9009/",
+		},
+	})
+
 	// Cors config
 	a.Config.SetDefault("cors", map[string]interface{}{
 		"origins": []string{
