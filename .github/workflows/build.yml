@@ -27,7 +27,7 @@ jobs:
         id: go
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Get dependencies
         run: |
@@ -48,7 +48,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@V4
+      - uses: actions/checkout@v3
 
       # Setup gcloud CLI
       - id: "auth"
