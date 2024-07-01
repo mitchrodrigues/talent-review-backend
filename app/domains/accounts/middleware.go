@@ -88,30 +88,34 @@ func initializeJWKMiddleware(app golly.Application) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	jwkCache := jwk.NewCache(ctx)
 
+	// Register a callback to cancel the context on app shutdown
 	golly.Events().On(golly.EventAppShutdown, func(gctx golly.Context, e golly.Event) error {
 		cancel()
 		return nil
 	})
 
+	// Fetch the JWK Set URL from the WorkOS client
 	url, err := workos.Client(app.NewContext(ctx)).JWKSURL()
 	if err != nil {
-		return errors.WrapFatal(err)
+		return errors.WrapGeneric(err)
 	}
 
+	// Register the JWK set URL with the cache, with a minimum refresh interval
 	err = jwkCache.Register(
 		url.String(),
 		jwk.WithMinRefreshInterval(10*time.Minute),
 	)
-
 	if err != nil {
-		return err
+		return errors.WrapGeneric(err)
 	}
 
+	// Initial refresh of the JWK set
 	set, err := jwkCache.Refresh(ctx, url.String())
 	if err != nil {
-		return err
+		return errors.WrapGeneric(err)
 	}
 
 	jwkSet = set
+	app.Logger.Infof("Successfully initialized JWK middleware with URL: %s", url.String())
 	return nil
 }
