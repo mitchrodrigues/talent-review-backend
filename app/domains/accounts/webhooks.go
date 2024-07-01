@@ -24,6 +24,11 @@ func (cntr WebhookController) workosUserEvent(wctx golly.WebContext) {
 		return
 	}
 
+	if event.Data.FirstName == "" {
+		wctx.RenderStatus(http.StatusOK)
+		return
+	}
+
 	user, err := FindUserByEmail(wctx.Context, event.Data.Email)
 	if err == nil {
 
