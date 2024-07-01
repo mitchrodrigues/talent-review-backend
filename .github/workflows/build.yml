@@ -102,30 +102,34 @@ jobs:
       - id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Create migration job
-        run: |
-          cat <<EOF | kubectl apply -f -
-          apiVersion: batch/v1
-          kind: Job
-          metadata:
-            name: talent-review-migrations-${{ steps.vars.outputs.sha_short }}
-          spec:
-            template:
-              spec:
-                containers:
-                  - name: migrations
-                    image: $REGISTRY_HOSTNAME/$IMAGE:${{ steps.vars.outputs.sha_short }}
-                    command: ["bin/talent-review-backend"]
-                    args: ["migration", "migrate"]
-                restartPolicy: Never
-          EOF
+      # - name: Create migration job
+      #   run: |
+      #     cat <<EOF | kubectl apply -f -
+      #     apiVersion: batch/v1
+      #     kind: Job
+      #     metadata:
+      #       name: talent-review-migrations-${{ steps.vars.outputs.sha_short }}
+      #     spec:
+      #       template:
+      #         spec:
+      #           containers:
+      #             - name: migrations
+      #               image: $REGISTRY_HOSTNAME/$IMAGE:${{ steps.vars.outputs.sha_short }}
+      #               command: ["bin/talent-review-backend"]
+      #               args: ["migration", "migrate"]
+      #           restartPolicy: Never
+      #     EOF
 
-      - name: Wait for migration job to complete
-        run: |
-          kubectl wait --for=condition=complete --timeout=600s job/talent-review-migrations-${{ steps.vars.outputs.sha_short }}
+      # - name: Wait for migration job to complete
+      #   run: |
+      #     kubectl wait --for=condition=complete --timeout=600s job/talent-review-migrations-${{ steps.vars.outputs.sha_short }}
 
       - run: |
           kubectl set image deployments/$DEPLOYMENT_NAME web="$REGISTRY_HOSTNAME"/"$IMAGE":"${{ steps.vars.outputs.sha_short }}"
+
+      - name: migrations
+        run: |
+          kubectl exec deployment/$DEPLOYMENT_NAME -- bin/talent-review-backend migration migrate
 
       - name: "Wait for Deploy"
         run: |
