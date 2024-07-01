@@ -6,9 +6,14 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+const (
+	contextKey golly.ContextKeyT = "mailgunClient"
+)
+
 type Client interface {
 	SendEmail(golly.Context, Email) error
 	SendEmailTemplate(golly.Context, EmailWithTemplate) error
+	SendInviteEmail(golly.Context, InviteEmailParams) error
 }
 type DefaultClient struct {
 	mailgun *mailgun.MailgunImpl
@@ -38,4 +43,12 @@ func (m *MockEmailClient) SendEmail(email Email) error {
 func (m *MockEmailClient) SendEmailTemplate(emailTemplate EmailWithTemplate) error {
 	args := m.Called(emailTemplate)
 	return args.Error(0)
+}
+
+func GetClient(ctx golly.Context) Client {
+	if client, found := ctx.Get(contextKey); found {
+		return client.(Client)
+	}
+
+	return NewDefaultClient(ctx)
 }

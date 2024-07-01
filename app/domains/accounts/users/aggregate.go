@@ -35,8 +35,8 @@ func (*Aggregate) TableName() string                         { return "users" }
 func (user *Aggregate) GetID() string   { return user.ID.String() }
 func (user *Aggregate) SetID(id string) { user.ID, _ = uuid.Parse(id) }
 
-func (user *Aggregate) GetRecordID() uuid.UUID { return user.ID }
-func (user *Aggregate) GetIdpID() string       { return user.IdpID }
+func (user *Aggregate) RecordID() uuid.UUID { return user.ID }
+func (user *Aggregate) RecordIdpID() string { return user.IdpID }
 
 func (user *Aggregate) Apply(ctx golly.Context, evt eventsource.Event) {
 	switch event := evt.Data.(type) {
@@ -46,10 +46,13 @@ func (user *Aggregate) Apply(ctx golly.Context, evt eventsource.Event) {
 		user.OrganizationID = event.OrganizationID
 		user.LastName = event.LastName
 		user.Email = event.Email
-		user.IdpInviteID = event.IdpInviteID
 		user.IdpID = event.IdpID
+
+	case UserInvited:
+		user.IdpInviteID = event.IdpInviteID
 		user.InvitedAt = event.InvitedAt
 		user.InviterID = event.InviterID
+
 	case UserUpdated:
 		user.IdpID = event.IdpID
 		user.FirstName = event.FirstName

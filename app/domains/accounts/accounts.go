@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"github.com/golly-go/golly"
+	"github.com/golly-go/plugins/eventsource"
 )
 
 func Initializer(app golly.Application) error {
@@ -21,6 +22,8 @@ func Initializer(app golly.Application) error {
 			})
 		}
 	})
+
+	eventsource.Subscribe("users.Aggregate", "users.UserInvited", SendInviteEmail)
 
 	return initializeJWKMiddleware(app)
 }

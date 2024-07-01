@@ -57,16 +57,23 @@ func (m *MockClient) CreateOrganization(ctx golly.Context, name string, users ..
 	return r0, r1
 }
 
-func (m *MockClient) InviteUser(ctx golly.Context, orgID string, email string, inviterID string) (string, error) {
+func (m *MockClient) InviteUser(ctx golly.Context, orgID string, email string, inviterID string) (string, string, error) {
 	ret := m.Called(ctx, orgID, email, inviterID)
 
 	var r0 string
 	if ret.Get(0) != nil {
 		r0 = ret.Get(0).(string)
 	}
-	var r1 error
-	if r, ok := ret.Get(1).(error); ok {
-		r1 = r
+
+	var r1 string
+	if ret.Get(0) != nil {
+		r1 = ret.Get(1).(string)
 	}
-	return r0, r1
+
+	var r2 error
+	if r, ok := ret.Get(2).(error); ok {
+		r2 = r
+	}
+
+	return r0, r1, r2
 }

@@ -5,12 +5,16 @@ import (
 
 	"github.com/golly-go/golly"
 	"github.com/golly-go/golly/errors"
+	"github.com/golly-go/plugins/eventsource"
 	"github.com/golly-go/plugins/gql"
 	"github.com/graphql-go/graphql"
+	"github.com/mitchrodrigues/talent-review-backend/app/domains/accounts/users"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/common"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/helpers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/pagination"
+	"github.com/mitchrodrigues/talent-review-backend/app/utils/workos"
+	"gorm.io/gorm"
 )
 
 var (
@@ -148,7 +152,52 @@ var (
 		},
 	}
 
-	mutations = graphql.Fields{}
+	inviteUserInputType = graphql.NewInputObject(graphql.InputObjectConfig{
+		Name: "InviteUserInput",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"email": {Type: graphql.NewNonNull(graphql.String)},
+			"name":  {Type: graphql.NewNonNull(graphql.String)},
+		},
+	})
+
+	mutations = graphql.Fields{
+		"createInvite": {
+			Name: "invite",
+			Type: userType,
+			Args: graphql.FieldConfigArgument{
+				"input": &graphql.ArgumentConfig{Type: graphql.NewNonNull(inviteUserInputType)},
+			},
+
+			Resolve: gql.NewHandler(gql.Options{
+				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
+					ident := identity.FromContext(ctx.Context)
+
+					user, err := FindUserByID(
+						ctx.Context,
+						ident.UserID(),
+						common.OrganizationIDScope(ident.OrganizationID),
+						func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Organization")
+						},
+					)
+
+					if err != nil {
+						return nil, err
+					}
+
+					err = eventsource.Call(ctx.Context, &user.Aggregate, users.InviteUser{
+						WorkosClient: workos.Client(ctx.Context),
+						Name:         params.Input["name"].(string),
+						Email:        params.Input["email"].(string),
+						Inviter:      &user,
+						Organization: &user.Organization,
+					}, params.Metadata())
+
+					return user, errors.WrapGeneric(err)
+				},
+			}),
+		},
+	}
 )
 
 func InitGraphQL() {

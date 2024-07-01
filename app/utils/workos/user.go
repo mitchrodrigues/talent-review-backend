@@ -36,7 +36,7 @@ func (DefaultClient) CreateUser(ctx golly.Context, input CreateUserInput) (strin
 	return response.ID, errors.WrapGeneric(err)
 }
 
-func (DefaultClient) InviteUser(ctx golly.Context, organizationID, email, inviterID string) (string, error) {
+func (DefaultClient) InviteUser(ctx golly.Context, organizationID, email, inviterID string) (string, string, error) {
 	response, err := usermanagement.SendInvitation(
 		context.Background(),
 		usermanagement.SendInvitationOpts{
@@ -47,5 +47,5 @@ func (DefaultClient) InviteUser(ctx golly.Context, organizationID, email, invite
 		},
 	)
 
-	return response.ID, err
+	return response.ID, response.AcceptInvitationUrl, err
 }

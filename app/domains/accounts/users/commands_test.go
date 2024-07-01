@@ -247,9 +247,6 @@ func TestInviteUserPerform(t *testing.T) {
 			assert.Equal(t, tt.cmd.Email, event.Email)
 			// assert.Equal(t, tt.expectedEvent.IdpInviteID, event.IdpInviteID)
 			assert.Equal(t, tt.cmd.Organization.RecordID(), event.OrganizationID)
-			if tt.cmd.Inviter != nil {
-				assert.Equal(t, tt.cmd.Inviter.RecordID(), event.InviterID)
-			}
 		})
 	}
 }

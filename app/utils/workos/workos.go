@@ -21,7 +21,7 @@ type IDPObject interface {
 type WorkosClient interface {
 	CreateUser(golly.Context, CreateUserInput) (string, error)
 	CreateOrganization(golly.Context, string, ...string) (string, error)
-	InviteUser(golly.Context, string, string, string) (string, error)
+	InviteUser(golly.Context, string, string, string) (string, string, error)
 	JWKSURL() (*url.URL, error)
 }
 

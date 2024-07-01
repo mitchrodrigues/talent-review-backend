@@ -2,6 +2,7 @@ package users
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golly-go/golly"
@@ -65,6 +66,7 @@ type InviteUser struct {
 	Organization workos.IDPObject
 	Inviter      workos.IDPObject
 
+	Name  string
 	Email string
 }
 
@@ -90,21 +92,42 @@ func (cmd InviteUser) Perform(ctx golly.Context, aggregate eventsource.Aggregate
 		inviterID = cmd.Inviter.RecordID()
 	}
 
-	idpID, err := cmd.WorkosClient.InviteUser(ctx, cmd.Organization.RecordIdpID(), cmd.Email, inviterIdpID)
+	idpID, url, err := cmd.WorkosClient.InviteUser(ctx, cmd.Organization.RecordIdpID(), cmd.Email, inviterIdpID)
 	if err != nil {
 		return err
+	}
+
+	var firstName string
+	var lastName string
+
+	pieces := strings.Split(cmd.Name, " ")
+	switch len(pieces) {
+	case 0:
+	case 1:
+		firstName = pieces[0]
+	case 2:
+		firstName = pieces[0]
+		lastName = pieces[1]
+	default:
+		firstName = strings.Join(pieces[0:len(pieces)-2], " ")
+		lastName = pieces[len(pieces)-1]
 	}
 
 	t := time.Now()
 
 	eventsource.Apply(ctx, aggregate, UserCreated{
 		ID:             id,
+		FirstName:      firstName,
+		LastName:       lastName,
 		Email:          cmd.Email,
-		IdpInviteID:    idpID,
 		OrganizationID: cmd.Organization.RecordID(),
+	})
 
-		InvitedAt: &t,
-		InviterID: inviterID,
+	eventsource.Apply(ctx, aggregate, UserInvited{
+		IdpInviteID: idpID,
+		InvitedAt:   &t,
+		InviterID:   inviterID,
+		InviteURL:   url,
 	})
 
 	return nil
