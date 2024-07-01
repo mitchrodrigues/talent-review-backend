@@ -26,6 +26,8 @@ func configInitializer(a golly.Application) error {
 			"http://localhost:*",
 			"http://127.0.0.1:*",
 			"http://192.168.0.80:*",
+			"https://app.talent-radar.io",
+			"https://api.talent-radar.io",
 		},
 		"headers": []string{
 			"Accept",
