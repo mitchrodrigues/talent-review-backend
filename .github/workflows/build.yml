@@ -8,7 +8,7 @@ env:
   IMAGE: ${{ github.event.repository.name }}
   REGISTRY_HOSTNAME: us-west1-docker.pkg.dev/talent-review-428019/talent-radar
   PROJECT_ID: talent-review-428019
-  DEPLOYMENT_NAME: talent-radar-web
+  DEPLOYMENT_NAME: talent-radar-backend
   PRODUCTION_CLUSTER_NAME: talent-radar
   PRODUCTION_CLUSTER_ZONE: us-west1
 
@@ -81,38 +81,38 @@ jobs:
           docker push "$REGISTRY_HOSTNAME"/"$IMAGE":"${GITHUB_REF##*/}"
           docker push "$REGISTRY_HOSTNAME"/"$IMAGE":latest
 
-  # staging_web_pod:
-  #   name: Production - Deploy Web
-  #   needs: docker
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
+  production:
+    name: Production - Deploy Web
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
 
-  #     - id: "auth"
-  #       uses: "google-github-actions/auth@v1"
-  #       with:
-  #         credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+      - id: "auth"
+        uses: "google-github-actions/auth@v1"
+        with:
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
-  #     - id: "get-credentials"
-  #       uses: "google-github-actions/get-gke-credentials@v1"
-  #       with:
-  #         cluster_name: ${{ env.PRODUCTION_CLUSTER_NAME }}
-  #         location: ${{ env.PRODUCTION_CLUSTER_ZONE }}
+      - id: "get-credentials"
+        uses: "google-github-actions/get-gke-credentials@v1"
+        with:
+          cluster_name: ${{ env.PRODUCTION_CLUSTER_NAME }}
+          location: ${{ env.PRODUCTION_CLUSTER_ZONE }}
 
-  #     - id: vars
-  #       run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-  #     - run: |
-  #         kubectl set image deployments/$DEPLOYMENT_NAME web="$REGISTRY_HOSTNAME"/"$IMAGE":"${{ steps.vars.outputs.sha_short }}" --record=true
+      - run: |
+          kubectl set image deployments/$DEPLOYMENT_NAME web="$REGISTRY_HOSTNAME"/"$IMAGE":"${{ steps.vars.outputs.sha_short }}" --record=true
 
-  #     # - name: migrations
-  #     #   run: |
-  #     #     kubectl exec deployment/$DEPLOYMENT_NAME -- bin/zephyrian migration migrate
+      # - name: migrations
+      #   run: |
+      #     kubectl exec deployment/$DEPLOYMENT_NAME -- bin/zephyrian migration migrate
 
-  #     - name: "Wait for Deploy"
-  #       run: |
-  #         kubectl rollout status deployment/$DEPLOYMENT_NAME
-  #         kubectl get services -o wide
+      - name: "Wait for Deploy"
+        run: |
+          kubectl rollout status deployment/$DEPLOYMENT_NAME
+          kubectl get services -o wide
 
   # staging_js_pod:
   #   name: Staging - Deploying Socket Server

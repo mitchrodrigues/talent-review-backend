@@ -14,6 +14,7 @@ RUN go build -o ./bin  ./...
 
 FROM gcr.io/distroless/base
 COPY --from=builder /app/bin /app/bin
+COPY --from=builder /app/db /app/db
 
 WORKDIR /app
 
