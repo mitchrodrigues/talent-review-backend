@@ -194,7 +194,7 @@ func TestInviteUserPerform(t *testing.T) {
 			expectErr: false,
 			mockSetup: func() *workos.MockClient {
 				mockClient := &workos.MockClient{}
-				mockClient.On("InviteUser", mock.Anything, "org-id", "test@example.com", "inviter-id").Return("idp-id", nil)
+				mockClient.On("InviteUser", mock.Anything, "org-id", "test@example.com", "inviter-id").Return("idp-id", "http://localhost", nil)
 				return mockClient
 			},
 		},
@@ -214,7 +214,7 @@ func TestInviteUserPerform(t *testing.T) {
 			expectErr: true,
 			mockSetup: func() *workos.MockClient {
 				mockClient := &workos.MockClient{}
-				mockClient.On("InviteUser", mock.Anything, "org-id", "test@example.com", "inviter-id").Return("", errors.New("failed to invite user"))
+				mockClient.On("InviteUser", mock.Anything, "org-id", "test@example.com", "inviter-id").Return("", "", errors.New("failed to invite user"))
 				return mockClient
 			},
 		},
@@ -239,7 +239,7 @@ func TestInviteUserPerform(t *testing.T) {
 			mock.AssertExpectations(t)
 
 			changes := user.Changes()
-			assert.Len(t, changes, 1)
+			assert.Len(t, changes, 2)
 
 			event, ok := changes[0].Data.(UserCreated)
 			assert.True(t, ok)
