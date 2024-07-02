@@ -31,6 +31,7 @@ func FindEmployeeByID(gctx golly.Context, id uuid.UUID) (Employee, error) {
 	err := orm.
 		DB(gctx).
 		Model(emp).
+		Scopes(common.OrganizationIDScopeForContext(gctx)).
 		Find(&emp, "id = ?", id).
 		Error
 
@@ -43,6 +44,7 @@ func FindTeamsByOrganizationID(gctx golly.Context, organizationID uuid.UUID) ([]
 	err := orm.
 		DB(gctx).
 		Model(Team{}).
+		Scopes(common.OrganizationIDScope(organizationID)).
 		Scopes(DefaultPreloads).
 		Find(&teams).
 		Error

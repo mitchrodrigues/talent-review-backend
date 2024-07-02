@@ -30,3 +30,11 @@ func FromContext(gctx golly.Context) Identity {
 	}
 	return Identity{}
 }
+
+func NewTestIdentity(gctx golly.Context) (Identity, golly.Context) {
+	ident := Identity{uuid.New(), uuid.New()}
+
+	gctx = passport.ToContext(gctx, ident)
+
+	return ident, gctx
+}

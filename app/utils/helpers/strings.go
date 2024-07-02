@@ -1,6 +1,9 @@
 package helpers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -46,4 +49,20 @@ func Coalesce(s1, s2 string) string {
 	}
 
 	return s2
+}
+
+// GenerateCode generates a 10-digit alphanumeric code in the format XXXXX-XXXXX
+func GenerateCode() (string, error) {
+	// Generate 5 bytes of random data (10 hex characters)
+	bytes := make([]byte, 5)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+
+	// Convert bytes to a hexadecimal string
+	code := hex.EncodeToString(bytes)
+
+	// Insert hyphen after 5 characters
+	return strings.ToUpper(fmt.Sprintf("%s-%s", code[:5], code[5:])), nil
 }

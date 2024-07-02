@@ -2,7 +2,10 @@ package accounts
 
 import (
 	"context"
+	"net/url"
 	"regexp"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/golly-go/golly"
@@ -20,6 +23,10 @@ import (
 var (
 	usersHeaderMatcher = regexp.MustCompile(`[bB]earer\s(.+)`)
 	jwkSet             jwk.Set
+	jwkURL             *url.URL
+	jwkCache           *jwk.Cache
+
+	lock sync.RWMutex
 )
 
 func JWTMiddleware(next golly.HandlerFunc) golly.HandlerFunc {
@@ -30,10 +37,9 @@ func JWTMiddleware(next golly.HandlerFunc) golly.HandlerFunc {
 		token := DecodeAuthorizationHeader(c.Request().Header.Get("Authorization"))
 
 		if token != "" {
-			tok, err := jwt.ParseString(token, jwt.WithKeySet(jwkSet))
-
+			tok, err := ParseTokenString(c.Context, token)
 			if err != nil {
-				c.Logger().Debugf("cannot parse token: %v", err)
+				c.Context.Logger().Debugf("cannot parse token: %v", err)
 				goto next
 			}
 
@@ -59,6 +65,37 @@ func JWTMiddleware(next golly.HandlerFunc) golly.HandlerFunc {
 	}
 }
 
+func ParseTokenString(gctx golly.Context, token string) (tok jwt.Token, err error) {
+	var retried bool = false
+
+retry:
+	tok, err = jwt.ParseString(token, jwt.WithKeySet(jwkSet))
+
+	if err == nil {
+		return
+	}
+
+	if retried {
+		return
+	}
+
+	if strings.Contains(err.Error(), "failed to find key with key ID") {
+		lock.Lock()
+		jwkSet, err = jwkCache.Refresh(gctx.Context(), jwkURL.String())
+		lock.Unlock()
+
+		if err != nil {
+			return
+		}
+
+		retried = true
+		goto retry
+	}
+
+	err = errors.WrapGeneric(err)
+	return
+}
+
 func ScopeDBMiddleware(next golly.HandlerFunc) golly.HandlerFunc {
 	return func(c golly.WebContext) {
 		ident := identity.FromContext(c.Context)
@@ -80,13 +117,14 @@ func DecodeAuthorizationHeader(header string) string {
 	return ""
 }
 
-func NewKeySet(ctx golly.Context) (interface{}, error) {
+func NewKeySet(ctx golly.Context) (jwk.Set, error) {
 	return nil, nil
 }
 
 func initializeJWKMiddleware(app golly.Application) error {
 	ctx, cancel := context.WithCancel(context.Background())
-	jwkCache := jwk.NewCache(ctx)
+
+	jwkCache = jwk.NewCache(ctx)
 
 	// Register a callback to cancel the context on app shutdown
 	golly.Events().On(golly.EventAppShutdown, func(gctx golly.Context, e golly.Event) error {
@@ -100,17 +138,20 @@ func initializeJWKMiddleware(app golly.Application) error {
 		return errors.WrapGeneric(err)
 	}
 
+	jwkURL = url
+
 	// Register the JWK set URL with the cache, with a minimum refresh interval
 	err = jwkCache.Register(
-		url.String(),
+		jwkURL.String(),
 		jwk.WithMinRefreshInterval(10*time.Minute),
 	)
+
 	if err != nil {
 		return errors.WrapGeneric(err)
 	}
 
 	// Initial refresh of the JWK set
-	set, err := jwkCache.Refresh(ctx, url.String())
+	set, err := jwkCache.Refresh(ctx, jwkURL.String())
 	if err != nil {
 		return errors.WrapGeneric(err)
 	}
