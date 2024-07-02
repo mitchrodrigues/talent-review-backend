@@ -79,21 +79,23 @@ retry:
 		return
 	}
 
-	if strings.Contains(err.Error(), "failed to find key with key ID") {
-		lock.Lock()
-		jwkSet, err = jwkCache.Refresh(gctx.Context(), jwkURL.String())
-		lock.Unlock()
+	if !strings.Contains(err.Error(), "failed to find key with key ID") {
+		err = errors.WrapGeneric(err)
+		return
 
-		if err != nil {
-			return
-		}
-
-		retried = true
-		goto retry
 	}
 
+	lock.Lock()
+	jwkSet, err = jwkCache.Refresh(gctx.Context(), jwkURL.String())
+	lock.Unlock()
+
 	err = errors.WrapGeneric(err)
-	return
+	if err != nil {
+		return
+	}
+
+	retried = true
+	goto retry
 }
 
 func ScopeDBMiddleware(next golly.HandlerFunc) golly.HandlerFunc {

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/eventsource"
 	"github.com/golly-go/plugins/orm"
@@ -44,11 +46,18 @@ func invite(gctx golly.Context, cmd *cobra.Command, args []string) error {
 
 	user := accounts.User{}
 
-	return eventsource.Call(gctx, &user.Aggregate, users.InviteUser{
+	err := eventsource.Call(gctx, &user.Aggregate, users.InviteUser{
 		WorkosClient: workos.DefaultClient{},
 		Email:        args[1],
 		Organization: &org,
 	}, eventsource.Metadata{})
+
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(1 * time.Second)
+	return nil
 }
 
 func register(gctx golly.Context, cmd *cobra.Command, args []string) error {
