@@ -36,6 +36,12 @@ func (team *Aggregate) Apply(ctx golly.Context, evt eventsource.Event) {
 
 		team.CreatedAt = evt.CreatedAt
 		team.UpdatedAt = evt.CreatedAt
+
+	case TeamUpdated:
+		team.Name = event.Name
+		team.ManagerID = event.ManagerID
+		team.UpdatedAt = evt.CreatedAt
+
 	}
 }
 

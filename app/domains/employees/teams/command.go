@@ -4,6 +4,7 @@ import (
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/eventsource"
 	"github.com/google/uuid"
+	"github.com/mitchrodrigues/talent-review-backend/app/utils/helpers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 )
 
@@ -27,5 +28,20 @@ func (cmd CreateTeam) Perform(gctx golly.Context, aggregate eventsource.Aggregat
 		OrganizationID: cmd.OrganizationID,
 	})
 
+	return nil
+}
+
+type UpdateTeam struct {
+	Name      string
+	ManagerID uuid.UUID
+}
+
+func (cmd UpdateTeam) Perform(gctx golly.Context, aggregate eventsource.Aggregate) error {
+	team := aggregate.(*Aggregate)
+
+	eventsource.Apply(gctx, aggregate, TeamUpdated{
+		Name:      helpers.Coalesce(cmd.Name, team.Name),
+		ManagerID: helpers.CoalesceUUID(cmd.ManagerID, team.ManagerID),
+	})
 	return nil
 }

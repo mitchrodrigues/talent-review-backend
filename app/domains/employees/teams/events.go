@@ -9,3 +9,8 @@ type TeamCreated struct {
 
 	Name string
 }
+
+type TeamUpdated struct {
+	Name      string
+	ManagerID uuid.UUID
+}

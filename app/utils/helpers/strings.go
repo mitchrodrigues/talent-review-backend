@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -48,6 +50,13 @@ func Coalesce(s1, s2 string) string {
 		return s1
 	}
 
+	return s2
+}
+
+func CoalesceUUID(s1, s2 uuid.UUID) uuid.UUID {
+	if s1 != uuid.Nil {
+		return s1
+	}
 	return s2
 }
 

@@ -2,6 +2,7 @@ package employees
 
 import (
 	"github.com/golly-go/golly"
+	"github.com/golly-go/golly/errors"
 	"github.com/golly-go/plugins/eventsource"
 	"github.com/golly-go/plugins/gql"
 	"github.com/golly-go/plugins/orm"
@@ -269,16 +270,13 @@ var (
 		},
 	})
 
-	// Name           string
-	// Email          string
-	// OrganizationID uuid.UUID
-	// Manager        bool
-
-	// WorkerType EmployeeWorkerType
-	// Type       string
-	// Level      int
-
-	// TeamID uuid.UUID
+	updateTeamInputType = graphql.NewInputObject(graphql.InputObjectConfig{
+		Name: "UpdateTeamInput",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"name":      {Type: graphql.NewNonNull(graphql.String)},
+			"managerID": {Type: graphql.String},
+		},
+	})
 
 	mutations = graphql.Fields{
 		//********** Employees ***************//
@@ -343,6 +341,44 @@ var (
 						Name:           params.Input["name"].(string),
 						ManagerID:      managerID,
 						OrganizationID: ident.OrganizationID,
+					}, params.Metadata())
+
+					return team, err
+				},
+			}),
+		},
+
+		"updateTeam": &graphql.Field{
+			Name: "createTeam",
+			Type: teamGQLType,
+			Args: graphql.FieldConfigArgument{
+				"id":    &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+				"input": &graphql.ArgumentConfig{Type: updateTeamInputType},
+			},
+			Resolve: gql.NewHandler(gql.Options{
+				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
+					id, err := helpers.ExtractAndParseUUID(params.Args, "id")
+					if err != nil {
+						return nil, errors.WrapNotFound(err)
+					}
+
+					managerID, _ := helpers.ExtractAndParseUUID(params.Input, "managerID")
+					name, _ := helpers.ExtractArg[string](params.Input, "name")
+
+					var team Team
+
+					err = orm.DB(ctx.Context).Model(team).
+						Scopes(common.OrganizationIDScopeForContext(ctx.Context)).
+						Find(&team, "id = ?", id).
+						Error
+
+					if err != nil {
+						return nil, err
+					}
+
+					err = eventsource.Call(ctx.Context, &team.Aggregate, teams.UpdateTeam{
+						Name:      name,
+						ManagerID: managerID,
 					}, params.Metadata())
 
 					return team, err
