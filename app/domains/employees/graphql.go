@@ -14,6 +14,7 @@ import (
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/helpers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/pagination"
+	"gorm.io/gorm"
 )
 
 // TODO: Break these up into smaller files but for now put this here cause its quicker to dev against
@@ -46,6 +47,24 @@ var (
 			"teamID":     {Type: graphql.String},
 			"level":      {Type: graphql.NewNonNull(graphql.Int)},
 			"manager":    {Type: graphql.NewNonNull(graphql.Boolean)},
+		},
+	})
+
+	employeeSimplified = graphql.NewObject(graphql.ObjectConfig{
+		Name: "EmployeeInfo",
+		Fields: graphql.Fields{
+			"id": {
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(Employee).ID, nil
+				},
+			},
+			"name": {
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(Employee).Name, nil
+				},
+			},
 		},
 	})
 
@@ -99,6 +118,14 @@ var (
 					return p.Source.(Employee).WorkerType, nil
 				},
 			},
+			"team": {
+				Type: teamGQLType,
+				Resolve: gql.NewHandler(gql.Options{
+					Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
+						return params.Source.(Employee).Team, nil
+					},
+				}),
+			},
 		},
 	})
 
@@ -129,7 +156,7 @@ var (
 				},
 			},
 			"manager": {
-				Type: employeeGQLType,
+				Type: employeeSimplified,
 				Resolve: gql.NewHandler(gql.Options{
 					Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
 						team := params.Source.(Team)
@@ -152,12 +179,6 @@ var (
 						return manager, nil
 					},
 				}),
-			},
-			"employees": {
-				Type: graphql.NewList(employeeGQLType),
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return p.Source.(Team).Employees, nil
-				},
 			},
 		},
 	})
@@ -189,6 +210,9 @@ var (
 							employeeFilter.Scopes(params.Args["filter"])...,
 						).
 						SetScopes(common.OrganizationIDScopeForContext(ctx.Context)).
+						SetScopes(func(db *gorm.DB) *gorm.DB {
+							return db.Preload("Team.Manager")
+						}).
 						Paginate(ctx.Context)
 				},
 			}),
