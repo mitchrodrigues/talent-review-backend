@@ -75,9 +75,22 @@ var (
 			},
 			"user": {
 				Type: auditUserType,
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return p.Source.(Event).User, nil
-				},
+				Resolve: gql.NewHandler(gql.Options{
+					Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
+						event := params.Source.(Event)
+
+						if event.UserID == nil {
+							return nil, nil
+						}
+
+						user, err := accounts.FindUserByID(ctx.Context, event.UserID.String())
+						if err != nil {
+							return nil, nil
+						}
+
+						return user, nil
+					},
+				}),
 			},
 		},
 	})
