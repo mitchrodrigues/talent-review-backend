@@ -84,6 +84,10 @@ var (
 							return nil, nil
 						}
 
+						if event.UserID.String() == uuid.Nil.String() {
+							return nil, nil
+						}
+
 						user, err := accounts.FindUserByID(ctx.Context, event.UserID.String())
 						if err != nil || user.ID != uuid.Nil {
 							return nil, nil
