@@ -5,6 +5,7 @@ import (
 	"github.com/golly-go/plugins/orm"
 	"github.com/mitchrodrigues/talent-review-backend/app/controllers"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/accounts"
+	"github.com/mitchrodrigues/talent-review-backend/app/domains/audits"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/employees"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/esbackend"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/workos"
@@ -39,6 +40,7 @@ var Initializers = []golly.GollyAppFunc{
 
 	accounts.Initializer,
 	employees.Initalizer,
+	audits.Initialize,
 
 	// kafka.InitializerPublisher,
 	controllers.Initializer,

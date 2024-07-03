@@ -8,6 +8,7 @@ import (
 	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 )
 
 type PostgresRepository struct{}
@@ -35,7 +36,7 @@ func (pr PostgresRepository) Load(ctx golly.Context, object interface{}) error {
 func (PostgresRepository) Save(ctx golly.Context, object interface{}) error {
 	switch t := object.(type) {
 	case *eventsource.Event:
-		event, err := mapToDB(t)
+		event, err := mapToDB(ctx, t)
 		if err != nil {
 			return err
 		}
@@ -56,20 +57,24 @@ func (r PostgresRepository) Transaction(ctx golly.Context, fn func(golly.Context
 	return fn(ctx, r)
 }
 
-func mapToDB(evt *eventsource.Event) (Event, error) {
+func mapToDB(gctx golly.Context, evt *eventsource.Event) (Event, error) {
 	var err error
 
 	agID, _ := uuid.Parse(evt.AggregateID)
+
+	ident := identity.FromContext(gctx)
 
 	ret := Event{
 		ModelUUID: orm.ModelUUID{
 			ID:        evt.ID,
 			CreatedAt: evt.CreatedAt,
 		},
-		Type:          evt.Event,
-		AggregateID:   agID,
-		AggregateType: evt.AggregateType,
-		Version:       evt.Version,
+		Type:           evt.Event,
+		AggregateID:    agID,
+		AggregateType:  evt.AggregateType,
+		UserID:         &ident.UID,
+		OrganizationID: &ident.OrganizationID,
+		Version:        evt.Version,
 	}
 
 	ret.RawMetadata.RawMessage, err = json.Marshal(evt.Metadata)
