@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/golly-go/golly v0.4.1-0.20240619184451-89160ea15b2f
-	github.com/golly-go/plugins/eventsource v0.0.0-20240621063401-b9379db77331
+	github.com/golly-go/plugins/eventsource v0.0.0-20240703161545-cc5fdfb801c8
 	github.com/golly-go/plugins/gql v0.0.0-20240614194328-e5cc8c23ee48
 	github.com/golly-go/plugins/orm v0.0.0-20240622214418-9135b61955c3
 	github.com/golly-go/plugins/passport v0.0.0-20240614194328-e5cc8c23ee48
