@@ -6,6 +6,7 @@ import (
 
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/gql"
+	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/accounts"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/common"
@@ -84,7 +85,7 @@ var (
 						}
 
 						user, err := accounts.FindUserByID(ctx.Context, event.UserID.String())
-						if err != nil {
+						if err != nil || user.ID != uuid.Nil {
 							return nil, nil
 						}
 
