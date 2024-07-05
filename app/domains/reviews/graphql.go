@@ -19,6 +19,36 @@ import (
 )
 
 var (
+	feedbackDetailsType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "FeedbackDetails",
+		Fields: graphql.Fields{
+			"strengths": {
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(FeedbackDetails).Strenghts, nil
+				},
+			},
+			"opportunities": {
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(FeedbackDetails).Opportunities, nil
+				},
+			},
+			"additional": {
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(FeedbackDetails).Additional, nil
+				},
+			},
+			"enoughData": {
+				Type: graphql.Boolean,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(FeedbackDetails).EnoughData, nil
+				},
+			},
+		},
+	})
+
 	feedbackType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "Feedback",
 		Fields: graphql.Fields{
@@ -68,6 +98,23 @@ var (
 							fmt.Sprintf("employee:%s", employeeID),
 							func(gctx golly.Context) (employees.Employee, error) {
 								return employees.FindEmployeeByID_Unsafe(ctx.Context, employeeID)
+							},
+						)
+					},
+				}),
+			},
+			"details": {
+				Type: feedbackDetailsType,
+				Resolve: gql.NewHandler(gql.Options{
+					Public: true,
+					Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
+						feedbackID := params.Source.(Feedback).ID
+
+						return golly.LoadData(
+							ctx.Context,
+							fmt.Sprintf("details:%s", feedbackID),
+							func(gctx golly.Context) (FeedbackDetails, error) {
+								return FindFeedbackDetailsByFeedbackID_Unsafe(ctx.Context, feedbackID)
 							},
 						)
 					},

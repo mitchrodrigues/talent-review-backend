@@ -41,3 +41,15 @@ func FindFeedbackByIDAndCode(gctx golly.Context, id uuid.UUID, code string) (Fee
 
 	return feedback, err
 }
+
+func FindFeedbackDetailsByFeedbackID_Unsafe(gctx golly.Context, id uuid.UUID) (FeedbackDetails, error) {
+	var details FeedbackDetails
+
+	err := orm.
+		DB(gctx).
+		Model(details).
+		Find(&details, "feedback_id = ?", id).
+		Error
+
+	return details, err
+}

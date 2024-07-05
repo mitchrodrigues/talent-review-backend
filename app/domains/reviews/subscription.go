@@ -35,7 +35,7 @@ func SendFeedbackEmail(gctx golly.Context, agg eventsource.Aggregate, evt events
 				Name:            employee.Name,
 				Email:           feedback.Email,
 				CollectionEndAt: event.CollectionEndAt,
-				FeedbackURL:     fmt.Sprintf("%s/feedback/form/%s", gctx.Config().GetString("app.base.url"), feedback.Code),
+				FeedbackURL:     fmt.Sprintf("%s/feedback/form/%s", gctx.Config().GetString("app.frontend.url"), feedback.Code),
 			})
 
 			if err != nil {
