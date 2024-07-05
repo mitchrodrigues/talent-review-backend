@@ -58,7 +58,8 @@ func TestGraphQLArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.filter.GraphQLArgs()
+			result := tt.filter.Args
+
 			assert.Equal(t, tt.expected.Type.Name(), result.Type.Name())
 
 			expectedFields := tt.expected.Type.(*graphql.InputObject).Fields()

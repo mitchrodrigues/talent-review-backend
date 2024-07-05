@@ -1,12 +1,28 @@
 package feedback
 
 import (
+	"time"
+
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/eventsource"
 	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/esbackend"
 )
+
+type FeedbackDetails struct {
+	orm.ModelUUID
+
+	EmployeeID     uuid.UUID
+	FeedbackID     uuid.UUID
+	OrganizationID uuid.UUID
+
+	Strenghts     string
+	Opportunities string
+	Additioanl    string
+
+	Rating int
+}
 
 type Aggregate struct {
 	eventsource.Aggregate
@@ -16,15 +32,14 @@ type Aggregate struct {
 	OwnerID        uuid.UUID
 	EmployeeID     uuid.UUID
 	OrganizationID uuid.UUID
-	CycleID        uuid.UUID
 
 	Email string
 	Code  string
 
-	Strength      string
-	Opportunities string
-	Additional    string
-	Rating        int
+	SubmittedAt     time.Time
+	CollectionEndAt time.Time
+
+	Details FeedbackDetails
 }
 
 func (*Aggregate) Topic() string                             { return "events.feedback" }

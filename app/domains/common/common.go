@@ -1,6 +1,8 @@
 package common
 
 import (
+	"strings"
+
 	"github.com/golly-go/golly"
 	"github.com/google/uuid"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
@@ -21,18 +23,8 @@ func OrganizationIDScope(orgID uuid.UUID) func(*gorm.DB) *gorm.DB {
 	}
 }
 
-func PaginationScope(page, limit int) func(*gorm.DB) *gorm.DB {
-	if page < 1 {
-		page = 1
-	}
-
-	if limit < 1 {
-		limit = 20
-	}
-
-	offset := (page - 1) * limit
-
+func EmailScope(email string) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Limit(limit).Offset(offset)
+		return db.Where("LOWER(email) = ?", strings.ToLower(email))
 	}
 }

@@ -8,7 +8,9 @@ import (
 	"github.com/golly-go/golly"
 	"github.com/golly-go/golly/errors"
 	"github.com/golly-go/plugins/eventsource"
+	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
+	"github.com/mitchrodrigues/talent-review-backend/app/domains/common"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/helpers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/workos"
 )
@@ -24,10 +26,22 @@ type CreateUser struct {
 	Password  string
 }
 
-func (cmd CreateUser) Validate(golly.Context, eventsource.Aggregate) error {
+func (cmd CreateUser) Validate(gctx golly.Context, aggregate eventsource.Aggregate) error {
 	if cmd.WorkosClient == nil {
 		return errors.WrapFatal(fmt.Errorf("workosclient not provided"))
 	}
+
+	var user Aggregate
+
+	orm.
+		DB(gctx).
+		Scopes(common.EmailScope(cmd.Email)).
+		Find(&user)
+
+	if user.ID != uuid.Nil {
+		return fmt.Errorf("user with email already exists")
+	}
+
 	return nil
 }
 

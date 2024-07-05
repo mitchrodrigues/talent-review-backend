@@ -13,6 +13,13 @@ type Created struct {
 	UserID         *uuid.UUID         `json:"userID"`
 }
 
+type Updated struct {
+	Name       string             `json:"name"`
+	Email      string             `json:"email"`
+	Level      int                `json:"level"`
+	WorkerType EmployeeWorkerType `json:"workerType"`
+}
+
 type UserUpdated struct {
 	UserID uuid.UUID `json:"userID"`
 }

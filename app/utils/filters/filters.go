@@ -19,6 +19,7 @@ type FieldType struct {
 type Filter struct {
 	Name   string
 	Fields map[string]FieldType
+	Args   *graphql.ArgumentConfig
 }
 
 // NewFilter initializes a new Filter
@@ -26,20 +27,21 @@ func NewFilter(name string, fields map[string]FieldType) *Filter {
 	return &Filter{
 		Name:   name,
 		Fields: fields,
+		Args:   graphQLArgs(name, fields),
 	}
 }
 
-// GraphQLTypes generates a GraphQL argument config from the Filter fields
-func (f *Filter) GraphQLArgs() *graphql.ArgumentConfig {
-	fields := graphql.InputObjectConfigFieldMap{}
+// graphQLArgs generates a GraphQL argument config from the Filter fields
+func graphQLArgs(name string, fields map[string]FieldType) *graphql.ArgumentConfig {
+	graphqlFields := graphql.InputObjectConfigFieldMap{}
 
-	for field, fieldType := range f.Fields {
-		fields[field] = &graphql.InputObjectFieldConfig{Type: fieldType.GraphQLType}
+	for field, fieldType := range fields {
+		graphqlFields[field] = &graphql.InputObjectFieldConfig{Type: fieldType.GraphQLType}
 	}
 
 	inputObject := graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:   fmt.Sprintf("%sFilter", f.Name),
-		Fields: fields,
+		Name:   fmt.Sprintf("%sFilter", name),
+		Fields: graphqlFields,
 	})
 
 	return &graphql.ArgumentConfig{

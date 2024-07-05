@@ -1,6 +1,8 @@
 package employees
 
 import (
+	"strings"
+
 	"github.com/golly-go/golly"
 	"github.com/golly-go/golly/errors"
 	"github.com/golly-go/plugins/eventsource"
@@ -38,19 +40,6 @@ var (
 		},
 	})
 
-	createEmployeeInputType = graphql.NewInputObject(graphql.InputObjectConfig{
-		Name: "CreateEmployeeInput",
-		Fields: graphql.InputObjectConfigFieldMap{
-			"name":       {Type: graphql.NewNonNull(graphql.String)},
-			"email":      {Type: graphql.NewNonNull(graphql.String)},
-			"workerType": {Type: graphql.NewNonNull(workerType)},
-			"title":      {Type: graphql.String},
-			"teamID":     {Type: graphql.String},
-			"level":      {Type: graphql.NewNonNull(graphql.Int)},
-			"manager":    {Type: graphql.NewNonNull(graphql.Boolean)},
-		},
-	})
-
 	employeeSimplified = graphql.NewObject(graphql.ObjectConfig{
 		Name: "EmployeeInfo",
 		Fields: graphql.Fields{
@@ -73,19 +62,19 @@ var (
 		Name: "Employee",
 		Fields: graphql.Fields{
 			"id": {
-				Type: graphql.String,
+				Type: graphql.NewNonNull(graphql.String),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					return p.Source.(Employee).ID, nil
 				},
 			},
 			"name": {
-				Type: graphql.String,
+				Type: graphql.NewNonNull(graphql.String),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					return p.Source.(Employee).Name, nil
 				},
 			},
 			"email": {
-				Type: graphql.String,
+				Type: graphql.NewNonNull(graphql.String),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					return p.Source.(Employee).Email, nil
 				},
@@ -97,7 +86,7 @@ var (
 				},
 			},
 			"type": {
-				Type: graphql.String,
+				Type: graphql.NewNonNull(graphql.String),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					switch p.Source.(Employee).Type {
 					case employee.Manager:
@@ -108,15 +97,23 @@ var (
 				},
 			},
 			"title": {
-				Type: graphql.String,
+				Type: graphql.NewNonNull(graphql.String),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					return p.Source.(Employee).Title, nil
 				},
 			},
 			"workerType": {
-				Type: workerType,
+				Type: graphql.NewNonNull(graphql.String),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return p.Source.(Employee).WorkerType, nil
+					switch strings.TrimSpace(string(p.Source.(Employee).WorkerType)) {
+					case string(employee.AgencyContractor):
+						return "agency", nil
+					case string(employee.DirectContractor):
+						return "direct", nil
+					default:
+						return "fte", nil
+					}
+
 				},
 			},
 			"team": {
@@ -199,7 +196,7 @@ var (
 			Name: "employees",
 			Args: graphql.FieldConfigArgument{
 				"pagination": pagination.PagiantionArgs,
-				"filter":     employeeFilter.GraphQLArgs(),
+				"filter":     employeeFilter.Args,
 			},
 			Type: pagination.PaginationType[Employee](employeeGQLType),
 			Resolve: gql.NewHandler(gql.Options{
@@ -239,13 +236,42 @@ var (
 			}),
 		},
 
+		"subordinates": &graphql.Field{
+			Name: "subordinates",
+			Args: graphql.FieldConfigArgument{
+				"filter": employeeFilter.Args,
+			},
+			Type: graphql.NewList(employeeGQLType),
+			Resolve: gql.NewHandler(gql.Options{
+				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
+					ident := identity.FromContext(ctx.Context)
+
+					myRecord, err := FindEmployeeByUserID(ctx.Context, ident.UID)
+					if err != nil {
+						return nil, err
+					}
+
+					employees, err := FindEmployeesByManagerID(
+						ctx.Context,
+						myRecord.ID,
+						employeeFilter.Scopes(params.Args["filter"])...)
+
+					if err != nil {
+						return nil, err
+					}
+
+					return employees, nil
+				},
+			}),
+		},
+
 		//********** TEAMS ***************//
 
 		"teams": &graphql.Field{
 			Name: "teams",
 			Args: graphql.FieldConfigArgument{
 				"pagination": pagination.PagiantionArgs,
-				"filter":     teamFilter.GraphQLArgs(),
+				"filter":     teamFilter.Args,
 			},
 			Type: pagination.PaginationType[Team](teamGQLType),
 			Resolve: gql.NewHandler(gql.Options{
@@ -275,6 +301,31 @@ var (
 		Fields: graphql.InputObjectConfigFieldMap{
 			"name":      {Type: graphql.NewNonNull(graphql.String)},
 			"managerID": {Type: graphql.String},
+		},
+	})
+
+	createEmployeeInputType = graphql.NewInputObject(graphql.InputObjectConfig{
+		Name: "CreateEmployeeInput",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"name":       {Type: graphql.NewNonNull(graphql.String)},
+			"email":      {Type: graphql.NewNonNull(graphql.String)},
+			"workerType": {Type: graphql.NewNonNull(workerType)},
+			"title":      {Type: graphql.String},
+			"teamID":     {Type: graphql.String},
+			"level":      {Type: graphql.NewNonNull(graphql.Int)},
+			"manager":    {Type: graphql.NewNonNull(graphql.Boolean)},
+		},
+	})
+
+	updateEmployeeInputType = graphql.NewInputObject(graphql.InputObjectConfig{
+		Name: "UpdateEmployeeInput",
+		Fields: graphql.InputObjectConfigFieldMap{
+			"name":       {Type: graphql.NewNonNull(graphql.String)},
+			"email":      {Type: graphql.NewNonNull(graphql.String)},
+			"title":      {Type: graphql.String},
+			"teamID":     {Type: graphql.String},
+			"level":      {Type: graphql.NewNonNull(graphql.Int)},
+			"workerType": {Type: graphql.NewNonNull(workerType)},
 		},
 	})
 
@@ -314,6 +365,50 @@ var (
 					}, params.Metadata())
 
 					return emp, err
+				},
+			}),
+		},
+
+		"updateEmployee": &graphql.Field{
+			Type: employeeGQLType,
+			Args: graphql.FieldConfigArgument{
+				"id":    &graphql.ArgumentConfig{Type: graphql.NewNonNull(graphql.String)},
+				"input": &graphql.ArgumentConfig{Type: updateEmployeeInputType},
+			},
+			Resolve: gql.NewHandler(gql.Options{
+				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
+					var teamID uuid.UUID
+					var title string
+
+					id, err := helpers.ExtractAndParseUUID(params.Args, "id")
+					if err != nil {
+						return nil, err
+					}
+
+					emp, err := FindEmployeeByID(ctx.Context, id)
+					if err != nil {
+						return nil, err
+					}
+
+					if val, err := helpers.ExtractAndParseUUID(params.Input, "teamID"); err == nil {
+						teamID = val
+					}
+
+					if val, err := helpers.ExtractArg[string](params.Input, "title"); err == nil {
+						title = val
+					}
+
+					err = eventsource.Call(ctx.Context, &emp.Aggregate, employee.Update{
+						Name:       params.Input["name"].(string),
+						Email:      params.Input["email"].(string),
+						Level:      params.Input["level"].(int),
+						WorkerType: employee.EmployeeWorkerType(params.Input["workerType"].(string)),
+						TeamID:     teamID,
+						Title:      title,
+					}, params.Metadata())
+
+					return emp, err
+
 				},
 			}),
 		},
