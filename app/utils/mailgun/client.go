@@ -14,6 +14,7 @@ type Client interface {
 	SendEmail(golly.Context, Email) error
 	SendEmailTemplate(golly.Context, EmailWithTemplate) error
 	SendInviteEmail(golly.Context, InviteEmailParams) error
+	SendFeedbackEmail(gctx golly.Context, params FeedbackEmailParams) error
 }
 type DefaultClient struct {
 	mailgun *mailgun.MailgunImpl

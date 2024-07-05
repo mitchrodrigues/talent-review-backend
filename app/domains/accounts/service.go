@@ -5,6 +5,7 @@ import (
 	"github.com/golly-go/golly/errors"
 	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
+	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 	"gorm.io/gorm"
 )
 
@@ -25,6 +26,12 @@ func FindUserByID(gctx golly.Context, id string, scopes ...func(*gorm.DB) *gorm.
 	}
 
 	return user, err
+}
+
+func FindUserForContext(gctx golly.Context) (User, error) {
+	ident := identity.FromContext(gctx)
+
+	return FindUserByID(gctx, ident.UserID())
 }
 
 func FindUserByIDPId(gctx golly.Context, idpID string) (User, error) {

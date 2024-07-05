@@ -1,6 +1,7 @@
 package employees
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/golly-go/golly"
@@ -40,7 +41,7 @@ var (
 		},
 	})
 
-	employeeSimplified = graphql.NewObject(graphql.ObjectConfig{
+	EmployeeSimplified = graphql.NewObject(graphql.ObjectConfig{
 		Name: "EmployeeInfo",
 		Fields: graphql.Fields{
 			"id": {
@@ -120,7 +121,12 @@ var (
 				Type: teamGQLType,
 				Resolve: gql.NewHandler(gql.Options{
 					Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
-						return params.Source.(Employee).Team, nil
+						if teamID := params.Source.(Employee).TeamID; teamID != nil {
+							return golly.LoadData(ctx.Context, fmt.Sprintf("team:%s", teamID), func(golly.Context) (Team, error) {
+								return FindTeamByID(ctx.Context, *teamID)
+							})
+						}
+						return nil, nil
 					},
 				}),
 			},
@@ -154,7 +160,7 @@ var (
 				},
 			},
 			"manager": {
-				Type: employeeSimplified,
+				Type: EmployeeSimplified,
 				Resolve: gql.NewHandler(gql.Options{
 					Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
 						team := params.Source.(Team)
@@ -246,21 +252,10 @@ var (
 				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
 					ident := identity.FromContext(ctx.Context)
 
-					myRecord, err := FindEmployeeByUserID(ctx.Context, ident.UID)
-					if err != nil {
-						return nil, err
-					}
-
-					employees, err := FindEmployeesByManagerID(
+					return FindEmployeesByManagersUserID(
 						ctx.Context,
-						myRecord.ID,
+						ident.UID,
 						employeeFilter.Scopes(params.Args["filter"])...)
-
-					if err != nil {
-						return nil, err
-					}
-
-					return employees, nil
 				},
 			}),
 		},

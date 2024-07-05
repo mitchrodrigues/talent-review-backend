@@ -7,6 +7,7 @@ import (
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/accounts"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/audits"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/employees"
+	"github.com/mitchrodrigues/talent-review-backend/app/domains/reviews"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/esbackend"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/workos"
 )
@@ -40,6 +41,7 @@ var Initializers = []golly.GollyAppFunc{
 
 	accounts.Initializer,
 	employees.Initalizer,
+	reviews.Initializer,
 	audits.Initialize,
 
 	// kafka.InitializerPublisher,

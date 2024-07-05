@@ -6,6 +6,7 @@ import (
 	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/common"
+	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 	"gorm.io/gorm"
 )
 
@@ -68,6 +69,45 @@ func FindEmployeesByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ..
 	), err
 }
 
+func FindEmployeeIDsByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]uuid.UUID, error) {
+	ident := identity.FromContext(gctx)
+
+	var employeeIDs []uuid.UUID
+
+	err := orm.DB(gctx).
+		Model(Employee{}).
+		Scopes(scopes...).
+		Joins("JOIN teams ON employees.team_id = teams.id").
+		Where("employees.organization_id = ?", ident.OrganizationID).
+		Where("teams.manager_id = ?", managerID).
+		Pluck("employees.id", &employeeIDs).
+		Error
+
+	return employeeIDs, err
+}
+
+func FindEmployeeIDsByManagerUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]uuid.UUID, error) {
+	myRecord, err := FindEmployeeByUserID(gctx, userID)
+	if err != nil || myRecord.ID == uuid.Nil {
+		return nil, err
+	}
+
+	return FindEmployeeIDsByManagerID(gctx, myRecord.ID, scopes...)
+}
+
+func FindEmployeesByManagersUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error) {
+	myRecord, err := FindEmployeeByUserID(gctx, userID)
+	if err != nil || myRecord.ID == uuid.Nil {
+		return nil, err
+	}
+
+	return FindEmployeesByManagerID(
+		gctx,
+		myRecord.ID,
+		scopes...)
+
+}
+
 func FindEmployeeByEmailAndOrganizationID(gctx golly.Context, email string, organizationID uuid.UUID) (Employee, error) {
 	var emp Employee
 
@@ -95,6 +135,18 @@ func FindEmployeeByID(gctx golly.Context, id uuid.UUID) (Employee, error) {
 	return emp, errors.WrapNotFound(err)
 }
 
+func FindEmployeeByID_Unsafe(gctx golly.Context, id uuid.UUID) (Employee, error) {
+	var emp Employee
+
+	err := orm.
+		DB(gctx).
+		Model(emp).
+		Find(&emp, "id = ?", id).
+		Error
+
+	return emp, errors.WrapNotFound(err)
+}
+
 func FindTeamsByOrganizationID(gctx golly.Context, organizationID uuid.UUID) ([]Team, error) {
 	var teams []Team
 
@@ -107,6 +159,19 @@ func FindTeamsByOrganizationID(gctx golly.Context, organizationID uuid.UUID) ([]
 		Error
 
 	return teams, err
+}
+
+func FindTeamByID(gctx golly.Context, id uuid.UUID) (Team, error) {
+	var team Team
+
+	err := orm.
+		DB(gctx).
+		Model(Team{}).
+		Scopes(common.OrganizationIDScopeForContext(gctx)).
+		Find(&team, "id = ?", id).
+		Error
+
+	return team, err
 }
 
 func DefaultPreloads(db *gorm.DB) *gorm.DB {

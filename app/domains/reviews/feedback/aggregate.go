@@ -19,13 +19,14 @@ type FeedbackDetails struct {
 
 	Strenghts     string
 	Opportunities string
-	Additioanl    string
+	Additional    string
+	EnoughData    bool
 
 	Rating int
 }
 
 type Aggregate struct {
-	eventsource.Aggregate
+	eventsource.AggregateBase
 
 	orm.ModelUUID
 
@@ -39,7 +40,7 @@ type Aggregate struct {
 	SubmittedAt     time.Time
 	CollectionEndAt time.Time
 
-	Details FeedbackDetails
+	Details FeedbackDetails `gorm:"foreignKey:FeedbackID"`
 }
 
 func (*Aggregate) Topic() string                             { return "events.feedback" }
@@ -50,9 +51,38 @@ func (feedback *Aggregate) GetID() string   { return feedback.ID.String() }
 func (feedback *Aggregate) SetID(id string) { feedback.ID, _ = uuid.Parse(id) }
 
 func (feedback *Aggregate) Apply(ctx golly.Context, evt eventsource.Event) {
-	// switch event := evt.Data.(type) {
-	// case TeamCreated:
-	// }
+	switch event := evt.Data.(type) {
+	case Created:
+		feedback.ID = event.ID
+		feedback.Email = event.Email
+		feedback.CollectionEndAt = event.CollectionEndAt
+		feedback.EmployeeID = event.EmployeeID
+		feedback.Code = event.Code
+		feedback.OrganizationID = event.OrganizationID
+
+		feedback.OwnerID = event.OwnerID
+		feedback.CreatedAt = evt.CreatedAt
+		feedback.UpdatedAt = evt.CreatedAt
+
+	case DetailsCreated:
+		feedback.Details.ID = event.ID
+		feedback.Details.FeedbackID = event.FeedbackID
+		feedback.Details.OrganizationID = event.OrganizationID
+		feedback.Details.EmployeeID = event.EmployeeID
+
+	case DetailsUpdated:
+		feedback.Details.Strenghts = event.Strenghts
+		feedback.Details.Opportunities = event.Opportunities
+		feedback.Details.Rating = event.Rating
+		feedback.Details.Additional = event.Additional
+		feedback.Details.EnoughData = event.EnoughData
+		feedback.Details.CreatedAt = evt.CreatedAt
+		feedback.Details.UpdatedAt = evt.CreatedAt
+
+	case Submitted:
+		feedback.SubmittedAt = evt.CreatedAt
+
+	}
 }
 
 var _ eventsource.Aggregate = &Aggregate{}

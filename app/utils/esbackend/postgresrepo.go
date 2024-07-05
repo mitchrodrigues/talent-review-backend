@@ -2,6 +2,8 @@ package esbackend
 
 import (
 	"encoding/json"
+	"fmt"
+	"reflect"
 
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/eventsource"
@@ -9,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
+	"gorm.io/gorm"
 )
 
 type PostgresRepository struct{}
@@ -42,7 +45,7 @@ func (PostgresRepository) Save(ctx golly.Context, object interface{}) error {
 		}
 		return orm.NewDB(ctx).Model(event).Create(&event).Error
 	default:
-		return orm.NewDB(ctx).Model(t).Save(t).Error
+		return orm.NewDB(ctx).Model(t).Session(&gorm.Session{FullSaveAssociations: true}).Save(t).Error
 	}
 }
 
@@ -63,6 +66,13 @@ func mapToDB(gctx golly.Context, evt *eventsource.Event) (Event, error) {
 	agID, _ := uuid.Parse(evt.AggregateID)
 
 	ident := identity.FromContext(gctx)
+
+	// organizationID := ident.OrganizationID
+	// if organizationID == uuid.Nil {
+	// 	if oid, err := GetOrganizationID(evt.Data); err != nil {
+	// 		organizationID = oid
+	// 	}
+	// }
 
 	ret := Event{
 		ModelUUID: orm.ModelUUID{
@@ -88,4 +98,32 @@ func mapToDB(gctx golly.Context, evt *eventsource.Event) (Event, error) {
 	}
 
 	return ret, nil
+}
+
+// GetOrganizationID extracts the OrganizationID field from any struct using reflection.
+func GetOrganizationID(obj interface{}) (uuid.UUID, error) {
+	v := reflect.ValueOf(obj)
+
+	// Check if the input is a pointer and get the underlying element.
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	// Ensure we have a struct.
+	if v.Kind() != reflect.Struct {
+		return uuid.Nil, fmt.Errorf("expected a struct, but got %v", v.Kind())
+	}
+
+	// Get the OrganizationID field.
+	field := v.FieldByName("OrganizationID")
+	if !field.IsValid() {
+		return uuid.Nil, fmt.Errorf("field OrganizationID not found in struct")
+	}
+
+	// Ensure the field is of the correct type.
+	if field.Type() != reflect.TypeOf(uuid.UUID{}) {
+		return uuid.Nil, fmt.Errorf("expected OrganizationID to be uuid.UUID, but got %v", field.Type())
+	}
+
+	return field.Interface().(uuid.UUID), nil
 }

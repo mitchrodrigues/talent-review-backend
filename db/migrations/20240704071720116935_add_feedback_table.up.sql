@@ -3,8 +3,7 @@
 -- beginStatement
 CREATE TABLE feedbacks (
     id UUID NOT NULL PRIMARY KEY,
-    employee_id UUID NOT NULL,
-    organization_id UUID NOT NULL,
+    
     email VARCHAR(255) NOT NULL,
     code VARCHAR(16) NOT NULL,
 
@@ -12,6 +11,11 @@ CREATE TABLE feedbacks (
     
     collection_end_at  TIMESTAMP WITH TIME ZONE,
     submitted_at TIMESTAMP WITH TIME ZONE,
+
+    employee_id UUID NOT NULL,
+    organization_id UUID NOT NULL,
+    owner_id UUID NOT NULL,
+    
 
     updated_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE,

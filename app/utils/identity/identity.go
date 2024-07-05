@@ -38,3 +38,13 @@ func NewTestIdentity(gctx golly.Context) (Identity, golly.Context) {
 
 	return ident, gctx
 }
+
+func SetOrganizationID(gctx golly.Context, organizationID uuid.UUID) (Identity, golly.Context) {
+	ident := FromContext(gctx)
+
+	ident.OrganizationID = organizationID
+
+	passport.ToContext(gctx, ident)
+
+	return ident, gctx
+}

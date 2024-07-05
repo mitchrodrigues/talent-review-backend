@@ -35,6 +35,8 @@ func CreateBulkFeedback(gctx golly.Context, input CreateBulkFeedbackInput, metad
 		tCtx := orm.SetDBOnContext(gctx.Dup(), tx)
 
 		for _, employee := range emps {
+			gctx.Logger().Debugf("Starting Process Of Bulk Feedback: %#v", employee)
+
 			if aggs, err := processAdditionalEmails(tCtx, input, employee, metadata); err != nil {
 				return err
 			} else {
@@ -66,6 +68,8 @@ func processAdditionalEmails(gctx golly.Context,
 
 	var results []Feedback
 
+	gctx.Logger().Debugf("Starting Processing Additional Emails: %#v", input.AdditionalEmails)
+
 	for _, email := range input.AdditionalEmails {
 		if strings.EqualFold(email, employee.Email) {
 			continue
@@ -95,6 +99,8 @@ func processTeamMembers(gctx golly.Context,
 	employee employees.Employee,
 	metadata eventsource.Metadata,
 ) ([]Feedback, error) {
+	gctx.Logger().Debugf("Starting Processing TeamMembers Emails: %#v", input.IncludeTeam)
+
 	ident := identity.FromContext(gctx)
 
 	results := []Feedback{}

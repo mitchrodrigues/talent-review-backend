@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/golly-go/golly"
@@ -9,11 +10,16 @@ import (
 	"gorm.io/gorm"
 )
 
-func OrganizationIDScopeForContext(gctx golly.Context) func(*gorm.DB) *gorm.DB {
+func OrganizationIDScopeForContext(gctx golly.Context, tablePrefix ...string) func(*gorm.DB) *gorm.DB {
 	ident := identity.FromContext(gctx)
 
+	table := ""
+	if len(tablePrefix) > 0 {
+		table = tablePrefix[0] + "."
+	}
+
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("organization_id = ?", ident.OrganizationID)
+		return db.Where(fmt.Sprintf("%sorganization_id = ?", table), ident.OrganizationID)
 	}
 }
 

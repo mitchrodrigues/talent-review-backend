@@ -5,3 +5,5 @@ import "github.com/mitchrodrigues/talent-review-backend/app/domains/reviews/feed
 type Feedback struct {
 	feedback.Aggregate
 }
+
+func (Feedback) TableName() string { return "feedbacks" }
