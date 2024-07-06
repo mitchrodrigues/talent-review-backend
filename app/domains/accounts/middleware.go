@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/golly-go/plugins/passport"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
+	"github.com/sirupsen/logrus"
 
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/common"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
@@ -43,6 +45,8 @@ func JWTMiddleware(next golly.HandlerFunc) golly.HandlerFunc {
 				goto next
 			}
 
+			fmt.Printf("%#v\n", tok.Subject())
+
 			user, err = FindUserByIDPId(c.Context, tok.Subject())
 			if err != nil {
 				c.Logger().Debugf("cannot find idp user: %v", err)
@@ -61,6 +65,11 @@ func JWTMiddleware(next golly.HandlerFunc) golly.HandlerFunc {
 
 	next:
 		c.Context = passport.ToContext(c.Context, ident)
+		c.SetLogger(
+			c.Logger().
+				WithFields(logrus.Fields{"user_id": ident.UID, "organization_id": ident.OrganizationID}),
+		)
+
 		next(c)
 	}
 }
@@ -70,7 +79,6 @@ func ParseTokenString(gctx golly.Context, token string) (tok jwt.Token, err erro
 
 retry:
 	tok, err = jwt.ParseString(token, jwt.WithKeySet(jwkSet))
-
 	if err == nil {
 		return
 	}
@@ -82,7 +90,6 @@ retry:
 	if !strings.Contains(err.Error(), "failed to find key with key ID") {
 		err = errors.WrapGeneric(err)
 		return
-
 	}
 
 	lock.Lock()
@@ -141,6 +148,8 @@ func initializeJWKMiddleware(app golly.Application) error {
 	}
 
 	jwkURL = url
+
+	app.Logger.Debugf("JWKS URL: %s", url.String())
 
 	// Register the JWK set URL with the cache, with a minimum refresh interval
 	err = jwkCache.Register(

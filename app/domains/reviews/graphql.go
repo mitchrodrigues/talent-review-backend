@@ -258,8 +258,6 @@ var (
 					var strength string = ""
 					if val, err := helpers.ExtractArg[string](params.Input, "strengths"); err == nil {
 						strength = val
-					} else {
-						wctx.Logger().Warnf("Strengths: %#v", err)
 					}
 
 					var opportunities string = ""
