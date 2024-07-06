@@ -80,7 +80,7 @@ func (cp *CursorPagination[T]) Paginate(gctx golly.Context) (*CursorPagination[T
 	}
 
 	// Apply limit and offset
-	if err := query.Limit(cp.Limit).Offset(offset).Order("id ASC").Find(&cp.Model).Error; err != nil {
+	if err := query.Limit(cp.Limit).Offset(offset).Order("created_at DESC").Find(&cp.Model).Error; err != nil {
 		return cp, err
 	}
 

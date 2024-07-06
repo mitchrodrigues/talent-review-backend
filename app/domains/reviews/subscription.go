@@ -1,8 +1,6 @@
 package reviews
 
 import (
-	"fmt"
-
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/eventsource"
 	"github.com/golly-go/plugins/orm"
@@ -31,11 +29,11 @@ func SendFeedbackEmail(gctx golly.Context, agg eventsource.Aggregate, evt events
 				return
 			}
 
-			mailgun.GetClient(gctx).SendFeedbackEmail(gctx, mailgun.FeedbackEmailParams{
+			err = mailgun.GetClient(gctx).SendFeedbackEmail(gctx, mailgun.FeedbackEmailParams{
 				Name:            employee.Name,
 				Email:           feedback.Email,
 				CollectionEndAt: event.CollectionEndAt,
-				FeedbackURL:     fmt.Sprintf("%s/feedback/form/%s", gctx.Config().GetString("app.frontend.url"), feedback.Code),
+				FeedbackURL:     ctx.Config().GetString("app.frontend.url") + "/feedback/form/" + feedback.Code,
 			})
 
 			if err != nil {
