@@ -88,9 +88,16 @@ var (
 							return nil, nil
 						}
 
-						user, err := accounts.FindUserByID(ctx.Context, event.UserID.String())
-						if err != nil || user.ID != uuid.Nil {
-							return nil, nil
+						user, err := golly.LoadData(
+							ctx.Context,
+							fmt.Sprintf("users:%s", event.UserID.String()),
+							func(golly.Context) (accounts.User, error) {
+								return accounts.FindUserByID(ctx.Context, event.UserID.String())
+							},
+						)
+
+						if user.ID == uuid.Nil || err != nil {
+							return nil, err
 						}
 
 						return user, nil
