@@ -15,7 +15,6 @@ CREATE TABLE feedbacks (
     employee_id UUID NOT NULL,
     organization_id UUID NOT NULL,
     owner_id UUID NOT NULL,
-    
 
     updated_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE,
@@ -43,8 +42,10 @@ CREATE TABLE feedback_details (
     employee_id UUID NOT NULL,
     organization_id UUID NOT NULL,
 
+    enough_data BOOLEAN NOT NULL,
+
     strenghts TEXT,
-    opporuntities TEXT,
+    opportunities TEXT,
     additional TEXT,
     rating INT,
 
