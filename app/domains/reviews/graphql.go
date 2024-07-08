@@ -350,6 +350,8 @@ var (
 					includeTeam, _ := helpers.ExtractArg[bool](params.Input, "includeTeam")
 					additionalEmails, _ := helpers.ExtractArg[[]interface{}](params.Input, "additionalEmails")
 
+					fmt.Printf("Include Team: %#v", includeTeam)
+
 					return CreateBulkFeedback(ctx.Context, CreateBulkFeedbackInput{
 						EmployeeIDs:     employeeIDs,
 						IncludeTeam:     includeTeam,

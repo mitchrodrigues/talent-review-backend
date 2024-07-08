@@ -62,11 +62,15 @@ func (s DefaultEmployeeService) FindEmployeesForTeam(gctx golly.Context, teamID 
 
 	var employees []Employee
 
-	err := orm.DB(gctx).
+	query := orm.DB(gctx).
 		Model(Employee{}).
-		Scopes(common.OrganizationIDScopeForContext(gctx)).
-		Where("id NOT IN ?", excludeEmployees).
-		Find(&employees, "team_id = ?", teamID).
+		Scopes(common.OrganizationIDScopeForContext(gctx))
+
+	if len(excludeEmployees) > 0 {
+		query = query.Where("id NOT IN ?", excludeEmployees)
+	}
+
+	err := query.Find(&employees, "team_id = ?", teamID).
 		Error
 
 	return employees, err
