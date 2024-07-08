@@ -125,7 +125,7 @@ var (
 		},
 	})
 
-	query = graphql.Fields{
+	queries = graphql.Fields{
 		//********** Feedback ***************//
 		"feedbacks": {
 			Name: "feedbacks",
@@ -172,8 +172,11 @@ var (
 				Public: true,
 				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
 					feedback, err := Service(wctx.Context).FindFeedbackForCode(wctx.Context, params.Args["code"].(string))
-					if feedback.ID == uuid.Nil {
+					if err != nil {
 						return nil, err
+					}
+					if feedback.ID == uuid.Nil {
+						return nil, errors.WrapNotFound(fmt.Errorf("not found"))
 					}
 
 					return feedback, nil
@@ -363,6 +366,6 @@ var (
 )
 
 func InitGraphQL() {
-	gql.RegisterQuery(query)
+	gql.RegisterQuery(queries)
 	gql.RegisterMutation(mutations)
 }

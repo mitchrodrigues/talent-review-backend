@@ -60,6 +60,9 @@ var PaginationInputType = graphql.NewInputObject(
 			"cursor": &graphql.InputObjectFieldConfig{
 				Type: graphql.String,
 			},
+			"first": &graphql.InputObjectFieldConfig{
+				Type: graphql.Int,
+			},
 			"limit": &graphql.InputObjectFieldConfig{
 				Type: graphql.Int,
 			},
@@ -84,6 +87,15 @@ func PaginationOptionsFromArgs[T any](args map[string]interface{}, model []T) Op
 				limit = MaxLimit
 			}
 		}
+
+		if l, ok := paginationArgs["first"].(int); ok {
+			if l < MaxLimit {
+				limit = l
+			} else {
+				limit = MaxLimit
+			}
+		}
+
 		if c, ok := paginationArgs["cursor"].(string); ok {
 			cursor = c
 		}

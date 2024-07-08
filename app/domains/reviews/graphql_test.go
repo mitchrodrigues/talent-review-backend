@@ -28,6 +28,329 @@ func createTestContext() golly.Context {
 		employees.Team{})
 }
 
+func formatTimestampGQL(t time.Time) string {
+	return t.Format(time.RFC3339Nano)
+}
+
+func TestFeedbacks(t *testing.T) {
+	type FeedbackResponse struct {
+		ID              uuid.UUID `json:"id"`
+		CreatedAt       string    `json:"createdAt"`
+		CollectionEndAt string    `json:"collectionEndAt"`
+		Email           string    `json:"email"`
+		SubmittedAt     *string   `json:"submittedAt"`
+		Employee        struct {
+			ID   uuid.UUID `json:"id"`
+			Name string    `json:"name"`
+		} `json:"employee"`
+	}
+
+	type Edge struct {
+		Node FeedbackResponse `json:"node"`
+	}
+
+	type PaginationResponse struct {
+		TotalCount int    `json:"totalCount"`
+		Edges      []Edge `json:"edges"`
+	}
+
+	type testCase struct {
+		name      string
+		identity  identity.Identity
+		variables map[string]interface{}
+		expected  PaginationResponse
+		hasError  bool
+	}
+
+	// Set up the test context and seed the database
+	gctx := createTestContext()
+
+	// Seed the database with feedback entries
+	managerUserID := uuid.New()
+	organizationID := uuid.New()
+
+	manager := employees.NewTestEmployee(uuid.New(), organizationID, &managerUserID)
+	orm.DB(gctx).Create(&manager)
+
+	team := employees.NewTestTeam(uuid.New(), manager.OrganizationID, manager.ID)
+	orm.DB(gctx).Create(&team)
+
+	employee := employees.NewTestEmployee(uuid.New(), organizationID, nil)
+	employee.TeamID = &team.ID
+
+	orm.DB(gctx).Create(&employee)
+
+	fb1 := Feedback{
+		Aggregate: feedback.Aggregate{
+			ModelUUID: orm.ModelUUID{
+				ID:        uuid.New(),
+				CreatedAt: time.Now(),
+			},
+			Code:            "test-code",
+			Email:           "test@example.com",
+			CollectionEndAt: time.Now().Add(7 * 24 * time.Hour),
+			EmployeeID:      employee.ID,
+			OrganizationID:  organizationID,
+		},
+	}
+	orm.DB(gctx).Create(&fb1)
+
+	fb2 := Feedback{
+		Aggregate: feedback.Aggregate{
+			ModelUUID: orm.ModelUUID{
+				ID:        uuid.New(),
+				CreatedAt: time.Now(),
+			},
+			Code:            "test-code-2",
+			Email:           "test@example.com",
+			CollectionEndAt: time.Now().Add(7 * 24 * time.Hour),
+			EmployeeID:      employee.ID,
+			OrganizationID:  organizationID,
+		},
+	}
+	orm.DB(gctx).Create(&fb2)
+
+	// Define test cases
+	testCases := []testCase{
+		{
+			name: "Valid feedbacks query, logged in",
+			identity: identity.Identity{
+				UID:            managerUserID,
+				OrganizationID: organizationID,
+			},
+			variables: map[string]interface{}{
+				"pagination": map[string]interface{}{
+					"first": 10,
+				},
+			},
+			expected: PaginationResponse{
+				TotalCount: 2,
+				Edges: []Edge{
+					{
+						Node: FeedbackResponse{
+							ID:              fb1.ID,
+							CreatedAt:       formatTimestampGQL(fb1.CreatedAt),
+							CollectionEndAt: formatTimestampGQL(fb1.CollectionEndAt),
+							Email:           fb1.Email,
+							SubmittedAt:     nil,
+							Employee: struct {
+								ID   uuid.UUID `json:"id"`
+								Name string    `json:"name"`
+							}{
+								ID:   employee.ID,
+								Name: employee.Name,
+							},
+						},
+					},
+					{
+						Node: FeedbackResponse{
+							ID:              fb2.ID,
+							CreatedAt:       formatTimestampGQL(fb2.CreatedAt),
+							CollectionEndAt: formatTimestampGQL(fb2.CollectionEndAt),
+							Email:           fb2.Email,
+							SubmittedAt:     nil,
+							Employee: struct {
+								ID   uuid.UUID `json:"id"`
+								Name string    `json:"name"`
+							}{
+								ID:   employee.ID,
+								Name: employee.Name,
+							},
+						},
+					},
+				},
+			},
+			hasError: false,
+		},
+		{
+			name: "User not logged in",
+			identity: identity.Identity{
+				UID:            uuid.Nil,
+				OrganizationID: uuid.Nil,
+			},
+			variables: map[string]interface{}{
+				"pagination": map[string]interface{}{
+					"first": 10,
+				},
+			},
+			hasError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Set the identity in the context
+			ctx := identity.ToContext(gctx, tc.identity)
+
+			// Define the test query with variables
+			query := `
+				query feedbacks($pagination: PaginationInput) {
+					feedbacks(pagination: $pagination) {
+						totalCount
+						edges {
+							node {
+								id
+								createdAt
+								collectionEndAt
+								email
+								submittedAt
+								employee {
+									id
+									name
+								}
+							}
+						}
+					}
+				}
+			`
+
+			r, err := gql.ExecuteGraphQLQuery(ctx, queries, query, tc.variables)
+			assert.NotNil(t, r)
+
+			if tc.hasError {
+				assert.NotNil(t, r.Errors)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Nil(t, r.Errors)
+
+			b, _ := json.Marshal(r.Data.(map[string]interface{})["feedbacks"])
+
+			var results PaginationResponse
+
+			err = json.Unmarshal(b, &results)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.expected.TotalCount, results.TotalCount)
+			assert.Equal(t, len(tc.expected.Edges), len(results.Edges))
+
+			for _, expected := range tc.expected.Edges {
+				result := golly.Find(results.Edges, func(edge Edge) bool {
+					return edge.Node.ID == expected.Node.ID
+				})
+
+				assert.NotNil(t, result)
+
+				assert.Equal(t, expected.Node.ID, result.Node.ID)
+				assert.Equal(t, expected.Node.CreatedAt, result.Node.CreatedAt)
+				assert.Equal(t, expected.Node.CollectionEndAt, result.Node.CollectionEndAt)
+				assert.Equal(t, expected.Node.Email, result.Node.Email)
+				assert.Equal(t, expected.Node.SubmittedAt, result.Node.SubmittedAt)
+				assert.Equal(t, expected.Node.Employee.ID, result.Node.Employee.ID)
+				assert.Equal(t, expected.Node.Employee.Name, result.Node.Employee.Name)
+			}
+		})
+	}
+}
+
+func TestFeedbackForCode(t *testing.T) {
+
+	timestamp := time.Now()
+
+	type FeedbackResponse struct {
+		ID uuid.UUID `json:"id"`
+	}
+
+	type testCase struct {
+		name     string
+		code     string
+		identity identity.Identity
+		expected FeedbackResponse
+		hasError bool
+	}
+
+	// Set up the test context and seed the database
+	gctx := createTestContext()
+
+	// Seed the database with a feedback entry
+	fb := Feedback{
+		Aggregate: feedback.Aggregate{
+			ModelUUID: orm.ModelUUID{
+				ID:        uuid.New(),
+				CreatedAt: timestamp,
+			},
+			Code:            "test-code",
+			Email:           "test@example.com",
+			CollectionEndAt: timestamp.Add(7 * 24 * time.Hour),
+			EmployeeID:      uuid.New(),
+		},
+	}
+	orm.DB(gctx).Create(&fb)
+
+	// Seed the database with an employee entry
+	employee := employees.NewTestEmployee(fb.EmployeeID, uuid.Nil, nil)
+	orm.DB(gctx).Create(&employee)
+
+	// Define test cases
+	testCases := []testCase{
+		{
+			name: "Valid feedback query, logged in",
+			code: fb.Code,
+			identity: identity.Identity{
+				UID:            uuid.New(),
+				OrganizationID: uuid.New(),
+			},
+			expected: FeedbackResponse{
+				ID: fb.ID,
+			},
+			hasError: false,
+		},
+		{
+			name: "Valid feedback query, logged out",
+			code: fb.Code,
+			expected: FeedbackResponse{
+				ID: fb.ID,
+			},
+			hasError: false,
+		},
+		{
+			name:     "Invalid feedback code",
+			code:     "invalid-code",
+			hasError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := identity.ToContext(gctx, tc.identity)
+
+			// Define the test query with variables
+			query := `
+				query feedbackForCode($code: String!) {
+					feedbackForCode(code: $code) {
+						id
+					}
+				}
+			`
+
+			variables := map[string]interface{}{
+				"code": tc.code,
+			}
+
+			r, err := gql.ExecuteGraphQLQuery(ctx, queries, query, variables)
+			assert.NotNil(t, r)
+
+			if tc.hasError {
+				assert.NotNil(t, r.Errors)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Nil(t, r.Errors)
+
+			b, _ := json.Marshal(r.Data.(map[string]interface{})["feedbackForCode"])
+
+			var results FeedbackResponse
+
+			err = json.Unmarshal(b, &results)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.expected.ID, results.ID)
+		})
+	}
+}
+
 func TestUpdateFeedbackDetails_Integration(t *testing.T) {
 	type UpdateDetails struct {
 		ID    uuid.UUID `json:"id"`
