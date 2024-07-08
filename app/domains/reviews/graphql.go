@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golly-go/golly"
+	"github.com/golly-go/golly/errors"
 	"github.com/golly-go/plugins/eventsource"
 	"github.com/golly-go/plugins/gql"
 	"github.com/google/uuid"
@@ -284,6 +285,10 @@ var (
 					fb, err := Service(wctx.Context).FindFeedbackByIDAndCode(wctx.Context, id, params.Args["code"].(string))
 					if err != nil {
 						return nil, err
+					}
+
+					if fb.ID == uuid.Nil {
+						return nil, errors.WrapNotFound(fmt.Errorf("not found"))
 					}
 
 					var strength string = ""

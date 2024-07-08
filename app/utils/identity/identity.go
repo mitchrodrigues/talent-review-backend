@@ -24,6 +24,10 @@ func Cast(ident passport.Identity) Identity {
 	return Identity{}
 }
 
+func ToContext(gctx golly.Context, ident Identity) golly.Context {
+	return passport.ToContext(gctx, ident)
+}
+
 func FromContext(gctx golly.Context) Identity {
 	if ident, found := passport.FromContext(gctx); found {
 		return ident.(Identity)

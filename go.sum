@@ -49,6 +49,16 @@ github.com/golly-go/plugins/eventsource v0.0.0-20240708055257-60677c1440f0 h1:2h
 github.com/golly-go/plugins/eventsource v0.0.0-20240708055257-60677c1440f0/go.mod h1:tcMnJUD4+xpF30au/BGEFvYTvKbMZ+xFJThlhoKNEtw=
 github.com/golly-go/plugins/gql v0.0.0-20240614194328-e5cc8c23ee48 h1:t2wQf+FoLuJttcMF+tcLZXPz9DjEP3v0ZiyXL1nvX7I=
 github.com/golly-go/plugins/gql v0.0.0-20240614194328-e5cc8c23ee48/go.mod h1:5XheNe4mx1h9Fn9O3D3kGCCu1B5+tHXTTHT1yL1qw1o=
+github.com/golly-go/plugins/gql v0.0.0-20240708070035-e97a8d417a4a h1:X+6CEVK96oZw1q62pzu91AZT+or5zc4fGSLRIOdVV/8=
+github.com/golly-go/plugins/gql v0.0.0-20240708070035-e97a8d417a4a/go.mod h1:5XheNe4mx1h9Fn9O3D3kGCCu1B5+tHXTTHT1yL1qw1o=
+github.com/golly-go/plugins/gql v0.0.0-20240708070821-310ce133de11 h1:8fIDco+GDrcyyMNY/PkRdQYkTLQG2OfLYHxuf+lo/A4=
+github.com/golly-go/plugins/gql v0.0.0-20240708070821-310ce133de11/go.mod h1:5XheNe4mx1h9Fn9O3D3kGCCu1B5+tHXTTHT1yL1qw1o=
+github.com/golly-go/plugins/gql v0.0.0-20240708071130-611acf0c97e2 h1:dbdOTLqRJoUIoGdfoLdgVEVaGnzhYVI/SYAN/BVcxe8=
+github.com/golly-go/plugins/gql v0.0.0-20240708071130-611acf0c97e2/go.mod h1:5XheNe4mx1h9Fn9O3D3kGCCu1B5+tHXTTHT1yL1qw1o=
+github.com/golly-go/plugins/gql v0.0.0-20240708073109-8944a4e8dc54 h1:yZfPKXlnvk2byoRNdrgmAjTLJShLGaKFy/AlCqtz9xA=
+github.com/golly-go/plugins/gql v0.0.0-20240708073109-8944a4e8dc54/go.mod h1:5XheNe4mx1h9Fn9O3D3kGCCu1B5+tHXTTHT1yL1qw1o=
+github.com/golly-go/plugins/gql v0.0.0-20240708075728-1dadf2cba570 h1:waaiNumKRYXfWDIeNsEEti5daSN+0zCHBIwjFE679NU=
+github.com/golly-go/plugins/gql v0.0.0-20240708075728-1dadf2cba570/go.mod h1:5XheNe4mx1h9Fn9O3D3kGCCu1B5+tHXTTHT1yL1qw1o=
 github.com/golly-go/plugins/orm v0.0.0-20240622214418-9135b61955c3 h1:aMbb9jIQXFkyxgYaGuMU+RH3+b8dN+NhSAe+9n9VbYA=
 github.com/golly-go/plugins/orm v0.0.0-20240622214418-9135b61955c3/go.mod h1:1DWeDi3aVGbJRcaVJ6m81w9ZIpjzHube5xo+IQErMxw=
 github.com/golly-go/plugins/passport v0.0.0-20240614194328-e5cc8c23ee48 h1:MbNmq5ogu93S6AnIHXc0MtVVC2qy0ePEljMyfzMjlSg=
