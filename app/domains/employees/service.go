@@ -10,7 +10,29 @@ import (
 	"gorm.io/gorm"
 )
 
-func FindEmployeeByUserID(gctx golly.Context, userID uuid.UUID) (Employee, error) {
+const (
+	serviceCtxKey golly.ContextKeyT = "employeeService"
+)
+
+type EmployeeService interface {
+	FindEmployeeByUserID(gctx golly.Context, userID uuid.UUID) (Employee, error)
+	FindEmployeesByIDS(gctx golly.Context, ids uuid.UUIDs) ([]Employee, error)
+	FindEmployeesForTeam(gctx golly.Context, teamID uuid.UUID, excludeEmployees ...uuid.UUID) ([]Employee, error)
+	FindEmployeesByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error)
+	FindEmployeeIDsByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) (uuid.UUIDs, error)
+	FindEmployeeIDsByManagerUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) (uuid.UUIDs, error)
+	FindEmployeesByManagersUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error)
+	FindEmployeeByEmailAndOrganizationID(gctx golly.Context, email string, organizationID uuid.UUID) (Employee, error)
+	FindEmployeeByID(gctx golly.Context, id uuid.UUID) (Employee, error)
+	FindEmployeeEmailsBySearch(gctx golly.Context, name string) ([]string, error)
+	FindEmployeeByID_Unsafe(gctx golly.Context, id uuid.UUID) (Employee, error)
+	FindTeamsByOrganizationID(gctx golly.Context, organizationID uuid.UUID) ([]Team, error)
+	FindTeamByID(gctx golly.Context, id uuid.UUID) (Team, error)
+}
+
+type DefaultEmployeeService struct{}
+
+func (s DefaultEmployeeService) FindEmployeeByUserID(gctx golly.Context, userID uuid.UUID) (Employee, error) {
 	var employees Employee
 
 	err := orm.DB(gctx).
@@ -23,7 +45,7 @@ func FindEmployeeByUserID(gctx golly.Context, userID uuid.UUID) (Employee, error
 
 }
 
-func FindEmployeesByIDS(gctx golly.Context, ids uuid.UUIDs) ([]Employee, error) {
+func (s DefaultEmployeeService) FindEmployeesByIDS(gctx golly.Context, ids uuid.UUIDs) ([]Employee, error) {
 	var employees []Employee
 
 	err := orm.DB(gctx).
@@ -36,7 +58,7 @@ func FindEmployeesByIDS(gctx golly.Context, ids uuid.UUIDs) ([]Employee, error) 
 
 }
 
-func FindEmployeesForTeam(gctx golly.Context, teamID uuid.UUID, excludeEmployees ...uuid.UUID) ([]Employee, error) {
+func (s DefaultEmployeeService) FindEmployeesForTeam(gctx golly.Context, teamID uuid.UUID, excludeEmployees ...uuid.UUID) ([]Employee, error) {
 
 	var employees []Employee
 
@@ -51,7 +73,7 @@ func FindEmployeesForTeam(gctx golly.Context, teamID uuid.UUID, excludeEmployees
 
 }
 
-func FindEmployeesByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error) {
+func (s DefaultEmployeeService) FindEmployeesByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error) {
 	var teams []Team
 
 	err := orm.DB(gctx).
@@ -69,10 +91,10 @@ func FindEmployeesByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ..
 	), err
 }
 
-func FindEmployeeIDsByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]uuid.UUID, error) {
+func (s DefaultEmployeeService) FindEmployeeIDsByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) (uuid.UUIDs, error) {
 	ident := identity.FromContext(gctx)
 
-	var employeeIDs []uuid.UUID
+	var employeeIDs uuid.UUIDs
 
 	err := orm.DB(gctx).
 		Model(Employee{}).
@@ -86,29 +108,29 @@ func FindEmployeeIDsByManagerID(gctx golly.Context, managerID uuid.UUID, scopes 
 	return employeeIDs, err
 }
 
-func FindEmployeeIDsByManagerUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]uuid.UUID, error) {
-	myRecord, err := FindEmployeeByUserID(gctx, userID)
+func (s DefaultEmployeeService) FindEmployeeIDsByManagerUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) (uuid.UUIDs, error) {
+	myRecord, err := s.FindEmployeeByUserID(gctx, userID)
 	if err != nil || myRecord.ID == uuid.Nil {
 		return nil, err
 	}
 
-	return FindEmployeeIDsByManagerID(gctx, myRecord.ID, scopes...)
+	return s.FindEmployeeIDsByManagerID(gctx, myRecord.ID, scopes...)
 }
 
-func FindEmployeesByManagersUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error) {
-	myRecord, err := FindEmployeeByUserID(gctx, userID)
+func (s DefaultEmployeeService) FindEmployeesByManagersUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error) {
+	myRecord, err := s.FindEmployeeByUserID(gctx, userID)
 	if err != nil || myRecord.ID == uuid.Nil {
 		return nil, err
 	}
 
-	return FindEmployeesByManagerID(
+	return s.FindEmployeesByManagerID(
 		gctx,
 		myRecord.ID,
 		scopes...)
 
 }
 
-func FindEmployeeByEmailAndOrganizationID(gctx golly.Context, email string, organizationID uuid.UUID) (Employee, error) {
+func (s DefaultEmployeeService) FindEmployeeByEmailAndOrganizationID(gctx golly.Context, email string, organizationID uuid.UUID) (Employee, error) {
 	var emp Employee
 
 	err := orm.DB(gctx).
@@ -122,7 +144,7 @@ func FindEmployeeByEmailAndOrganizationID(gctx golly.Context, email string, orga
 
 }
 
-func FindEmployeeByID(gctx golly.Context, id uuid.UUID) (Employee, error) {
+func (s DefaultEmployeeService) FindEmployeeByID(gctx golly.Context, id uuid.UUID) (Employee, error) {
 	var emp Employee
 
 	err := orm.
@@ -135,7 +157,22 @@ func FindEmployeeByID(gctx golly.Context, id uuid.UUID) (Employee, error) {
 	return emp, errors.WrapNotFound(err)
 }
 
-func FindEmployeeByID_Unsafe(gctx golly.Context, id uuid.UUID) (Employee, error) {
+func (s DefaultEmployeeService) FindEmployeeEmailsBySearch(gctx golly.Context, name string) ([]string, error) {
+	var emails []string
+
+	err := orm.
+		DB(gctx).
+		Model(&Employee{}).
+		Scopes(common.OrganizationIDScopeForContext(gctx)).
+		Select("DISTINCT(email) AS email").
+		Where("LOWER(email) LIKE ?", name+"%").
+		Pluck("email", &emails).
+		Error
+
+	return emails, err
+}
+
+func (s DefaultEmployeeService) FindEmployeeByID_Unsafe(gctx golly.Context, id uuid.UUID) (Employee, error) {
 	var emp Employee
 
 	err := orm.
@@ -147,21 +184,21 @@ func FindEmployeeByID_Unsafe(gctx golly.Context, id uuid.UUID) (Employee, error)
 	return emp, errors.WrapNotFound(err)
 }
 
-func FindTeamsByOrganizationID(gctx golly.Context, organizationID uuid.UUID) ([]Team, error) {
+func (s DefaultEmployeeService) FindTeamsByOrganizationID(gctx golly.Context, organizationID uuid.UUID) ([]Team, error) {
 	var teams []Team
 
 	err := orm.
 		DB(gctx).
 		Model(Team{}).
 		Scopes(common.OrganizationIDScope(organizationID)).
-		Scopes(DefaultPreloads).
+		Scopes(s.DefaultPreloads).
 		Find(&teams).
 		Error
 
 	return teams, err
 }
 
-func FindTeamByID(gctx golly.Context, id uuid.UUID) (Team, error) {
+func (s DefaultEmployeeService) FindTeamByID(gctx golly.Context, id uuid.UUID) (Team, error) {
 	var team Team
 
 	err := orm.
@@ -174,6 +211,17 @@ func FindTeamByID(gctx golly.Context, id uuid.UUID) (Team, error) {
 	return team, err
 }
 
-func DefaultPreloads(db *gorm.DB) *gorm.DB {
+func (s DefaultEmployeeService) DefaultPreloads(db *gorm.DB) *gorm.DB {
 	return db.Preload("Manager")
+}
+
+func Service(gctx golly.Context) EmployeeService {
+	if service, ok := gctx.Get(serviceCtxKey); ok {
+		return service.(EmployeeService)
+	}
+
+	service := DefaultEmployeeService{}
+	gctx.Set(serviceCtxKey, service)
+
+	return service
 }

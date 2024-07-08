@@ -14,7 +14,7 @@ type Client interface {
 	SendEmail(golly.Context, Email) error
 	SendEmailTemplate(golly.Context, EmailWithTemplate) error
 	SendInviteEmail(golly.Context, InviteEmailParams) error
-	SendFeedbackEmail(gctx golly.Context, params FeedbackEmailParams) error
+	SendFeedbackEmail(golly.Context, FeedbackEmailParams) error
 }
 type DefaultClient struct {
 	mailgun *mailgun.MailgunImpl
@@ -35,20 +35,36 @@ type MockEmailClient struct {
 }
 
 // SendEmail mocks the SendEmail method.
-func (m *MockEmailClient) SendEmail(email Email) error {
-	args := m.Called(email)
+func (m *MockEmailClient) SendEmail(gctx golly.Context, email Email) error {
+	args := m.Called(gctx, email)
 	return args.Error(0)
 }
 
 // SendEmailTemplate mocks the SendEmailTemplate method.
-func (m *MockEmailClient) SendEmailTemplate(emailTemplate EmailWithTemplate) error {
-	args := m.Called(emailTemplate)
+func (m *MockEmailClient) SendEmailTemplate(gctx golly.Context, emailTemplate EmailWithTemplate) error {
+	args := m.Called(gctx, emailTemplate)
+	return args.Error(0)
+}
+
+// SendEmailTemplate mocks the SendEmailTemplate method.
+func (m *MockEmailClient) SendInviteEmail(gctx golly.Context, params InviteEmailParams) error {
+	args := m.Called(gctx, params)
+	return args.Error(0)
+}
+
+// SendEmailTemplate mocks the SendEmailTemplate method.
+func (m *MockEmailClient) SendFeedbackEmail(gctx golly.Context, params FeedbackEmailParams) error {
+	args := m.Called(gctx, params)
 	return args.Error(0)
 }
 
 func GetClient(ctx golly.Context) Client {
 	if client, found := ctx.Get(contextKey); found {
 		return client.(Client)
+	}
+
+	if golly.Env().IsTest() {
+		return &MockEmailClient{}
 	}
 
 	return NewDefaultClient(ctx)

@@ -24,7 +24,7 @@ func SendFeedbackEmail(gctx golly.Context, agg eventsource.Aggregate, evt events
 				return
 			}
 
-			employee, err := employees.FindEmployeeByID(gctx, feedback.EmployeeID)
+			employee, err := employees.Service(gctx).FindEmployeeByID(gctx, feedback.EmployeeID)
 			if err != nil {
 				return
 			}

@@ -29,12 +29,12 @@ func UpdateEmployeeUser(gctx golly.Context, agg eventsource.Aggregate, event eve
 		return nil
 	}
 
-	readModel, err := FindEmployeeByEmailAndOrganizationID(gctx, email, orgID)
+	readModel, err := Service(gctx).FindEmployeeByEmailAndOrganizationID(gctx, email, orgID)
 	if readModel.ID == uuid.Nil || err != nil {
 		return err
 	}
 
-	return eventsource.Call(gctx, &readModel.Aggregate, employee.UpdateUser{
+	return eventsource.Handler(gctx).Call(gctx, &readModel.Aggregate, employee.UpdateUser{
 		UserID: uuid.MustParse(event.AggregateID),
 	}, event.Metadata)
 }

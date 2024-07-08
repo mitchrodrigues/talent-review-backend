@@ -43,6 +43,10 @@ github.com/golly-go/golly v0.4.1-0.20240704203050-3c4f3a889fca h1:wHQx84mVswZvYd
 github.com/golly-go/golly v0.4.1-0.20240704203050-3c4f3a889fca/go.mod h1:cXoK1Phl1G84pYtyfrzPvkuarKBZHmtBvbSAFxSW5jg=
 github.com/golly-go/plugins/eventsource v0.0.0-20240704211538-1165974c67fd h1:VXk3IkKQggf2uLQxqEEUF85WQQw5ebDtlQ1/fXOCjR4=
 github.com/golly-go/plugins/eventsource v0.0.0-20240704211538-1165974c67fd/go.mod h1:tcMnJUD4+xpF30au/BGEFvYTvKbMZ+xFJThlhoKNEtw=
+github.com/golly-go/plugins/eventsource v0.0.0-20240708055025-6b7f993038d2 h1:40ZJIkFwYYjLetIHfsYh2j0uyAQupzVW1TiR+5wHzug=
+github.com/golly-go/plugins/eventsource v0.0.0-20240708055025-6b7f993038d2/go.mod h1:tcMnJUD4+xpF30au/BGEFvYTvKbMZ+xFJThlhoKNEtw=
+github.com/golly-go/plugins/eventsource v0.0.0-20240708055257-60677c1440f0 h1:2hYRrxTu8T3PvmHIM1n47s4/1LrwDE5IAqMNRLZmdHw=
+github.com/golly-go/plugins/eventsource v0.0.0-20240708055257-60677c1440f0/go.mod h1:tcMnJUD4+xpF30au/BGEFvYTvKbMZ+xFJThlhoKNEtw=
 github.com/golly-go/plugins/gql v0.0.0-20240614194328-e5cc8c23ee48 h1:t2wQf+FoLuJttcMF+tcLZXPz9DjEP3v0ZiyXL1nvX7I=
 github.com/golly-go/plugins/gql v0.0.0-20240614194328-e5cc8c23ee48/go.mod h1:5XheNe4mx1h9Fn9O3D3kGCCu1B5+tHXTTHT1yL1qw1o=
 github.com/golly-go/plugins/orm v0.0.0-20240622214418-9135b61955c3 h1:aMbb9jIQXFkyxgYaGuMU+RH3+b8dN+NhSAe+9n9VbYA=

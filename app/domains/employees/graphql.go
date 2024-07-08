@@ -123,7 +123,7 @@ var (
 					Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
 						if teamID := params.Source.(Employee).TeamID; teamID != nil {
 							return golly.LoadData(ctx.Context, fmt.Sprintf("team:%s", teamID), func(golly.Context) (Team, error) {
-								return FindTeamByID(ctx.Context, *teamID)
+								return Service(ctx.Context).FindTeamByID(ctx.Context, *teamID)
 							})
 						}
 						return nil, nil
@@ -232,7 +232,7 @@ var (
 						return nil, err
 					}
 
-					employee, err := FindEmployeeByID(ctx.Context, id)
+					employee, err := Service(ctx.Context).FindEmployeeByID(ctx.Context, id)
 					if err != nil {
 						return nil, err
 					}
@@ -252,7 +252,7 @@ var (
 				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
 					ident := identity.FromContext(ctx.Context)
 
-					return FindEmployeesByManagersUserID(
+					return Service(ctx.Context).FindEmployeesByManagersUserID(
 						ctx.Context,
 						ident.UID,
 						employeeFilter.Scopes(params.Args["filter"])...)
@@ -380,7 +380,7 @@ var (
 						return nil, err
 					}
 
-					emp, err := FindEmployeeByID(ctx.Context, id)
+					emp, err := Service(ctx.Context).FindEmployeeByID(ctx.Context, id)
 					if err != nil {
 						return nil, err
 					}

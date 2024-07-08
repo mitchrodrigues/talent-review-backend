@@ -2,6 +2,7 @@ package reviews
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/golly-go/golly"
@@ -97,7 +98,7 @@ var (
 							ctx.Context,
 							fmt.Sprintf("employee:%s", employeeID),
 							func(gctx golly.Context) (employees.Employee, error) {
-								return employees.FindEmployeeByID_Unsafe(ctx.Context, employeeID)
+								return employees.Service(gctx).FindEmployeeByID_Unsafe(ctx.Context, employeeID)
 							},
 						)
 					},
@@ -114,7 +115,7 @@ var (
 							ctx.Context,
 							fmt.Sprintf("details:%s", feedbackID),
 							func(gctx golly.Context) (FeedbackDetails, error) {
-								return FindFeedbackDetailsByFeedbackID_Unsafe(ctx.Context, feedbackID)
+								return Service(gctx).FindFeedbackDetailsByFeedbackID_Unsafe(gctx, feedbackID)
 							},
 						)
 					},
@@ -134,10 +135,13 @@ var (
 			},
 			Type: pagination.PaginationType[Feedback](feedbackType),
 			Resolve: gql.NewHandler(gql.Options{
-				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
-					ident := identity.FromContext(ctx.Context)
+				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
+					ident := identity.FromContext(wctx.Context)
 
-					employeeIDs, err := employees.FindEmployeeIDsByManagerUserID(ctx.Context, ident.UID)
+					employeeIDs, err := employees.
+						Service(wctx.Context).
+						FindEmployeeIDsByManagerUserID(wctx.Context, ident.UID)
+
 					if err != nil {
 						return nil, err
 					}
@@ -146,12 +150,12 @@ var (
 						NewCursorPaginationFromArgs(
 							params.Args,
 							[]Feedback{},
-							common.OrganizationIDScopeForContext(ctx.Context),
+							common.OrganizationIDScopeForContext(wctx.Context),
 							func(db *gorm.DB) *gorm.DB {
 								return db.Where("employee_id IN ?", employeeIDs)
 							},
 						).
-						Paginate(ctx.Context)
+						Paginate(wctx.Context)
 				},
 			}),
 		},
@@ -165,13 +169,40 @@ var (
 			Type: feedbackType,
 			Resolve: gql.NewHandler(gql.Options{
 				Public: true,
-				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
-					feedback, err := FindFeedbackForCode(ctx.Context, params.Args["code"].(string))
+				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
+					feedback, err := Service(wctx.Context).FindFeedbackForCode(wctx.Context, params.Args["code"].(string))
 					if feedback.ID == uuid.Nil {
 						return nil, err
 					}
 
 					return feedback, nil
+				},
+			}),
+		},
+		//********** Misc ***************//
+
+		"emails": {
+			Name: "emails",
+			Type: graphql.NewList(graphql.String),
+			Args: graphql.FieldConfigArgument{
+				"email": {
+					Type: graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: gql.NewHandler(gql.Options{
+				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
+					email := params.Args["email"].(string)
+
+					empEmails, _ := employees.
+						Service(wctx.Context).
+						FindEmployeeEmailsBySearch(wctx.Context, email)
+
+					fbEmails, _ := Service(wctx.Context).FindFeedbackEmailsBySearch(wctx.Context, email)
+
+					sortable := sort.StringSlice(golly.Unique(append(empEmails, fbEmails...)))
+					sortable.Sort()
+
+					return sortable, nil
 				},
 			}),
 		},
@@ -221,7 +252,7 @@ var (
 						return nil, err
 					}
 
-					fb, err := FindFeedbackByIDAndCode(wctx.Context, id, params.Args["code"].(string))
+					fb, err := Service(wctx.Context).FindFeedbackByIDAndCode(wctx.Context, id, params.Args["code"].(string))
 					if err != nil {
 						return nil, err
 					}
@@ -250,7 +281,7 @@ var (
 						return nil, err
 					}
 
-					fb, err := FindFeedbackByIDAndCode(wctx.Context, id, params.Args["code"].(string))
+					fb, err := Service(wctx.Context).FindFeedbackByIDAndCode(wctx.Context, id, params.Args["code"].(string))
 					if err != nil {
 						return nil, err
 					}
