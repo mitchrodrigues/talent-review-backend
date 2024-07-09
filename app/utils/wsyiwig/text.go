@@ -1,5 +1,7 @@
 package wsyiwig
 
+import "encoding/json"
+
 // Define structs to represent the Tiptap JSON structure
 type Node struct {
 	Type    string `json:"type"`
@@ -29,4 +31,14 @@ func ExtractText(nodes []Node) string {
 		}
 	}
 	return text
+}
+
+// Function to extract text content from a JSON string
+func ExtractTextFromJSON(jsonStr string) (string, error) {
+	var root Node
+	err := json.Unmarshal([]byte(jsonStr), &root)
+	if err != nil {
+		return "", err
+	}
+	return ExtractText(root.Content), nil
 }

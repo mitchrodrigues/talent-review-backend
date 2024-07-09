@@ -35,3 +35,15 @@ type DetailsUpdated struct {
 
 	Rating int `json:"-"`
 }
+
+type SummaryCreated struct {
+	ID             uuid.UUID `json:"id"`
+	OrganizationID uuid.UUID `json:"organizationID"`
+	EmployeeID     uuid.UUID `json:"employeeID"`
+	FeedbackID     uuid.UUID `json:"feedbackID"`
+}
+
+type SummaryUpdated struct {
+	Summary     string `json:"-"`
+	ActionItems string `json:"-"`
+}

@@ -27,7 +27,7 @@ var (
 			"strengths": {
 				Type: graphql.String,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					return p.Source.(FeedbackDetails).Strenghts, nil
+					return p.Source.(FeedbackDetails).Strengths, nil
 				},
 			},
 			"opportunities": {

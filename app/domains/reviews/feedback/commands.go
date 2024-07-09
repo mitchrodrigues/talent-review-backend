@@ -1,6 +1,7 @@
 package feedback
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/golly-go/golly"
@@ -87,11 +88,44 @@ func (cmd CreateOrUpdateDetails) Perform(gctx golly.Context, aggregate eventsour
 	}
 
 	eventsource.Apply(gctx, aggregate, DetailsUpdated{
-		Strenghts:     helpers.Coalesce(cmd.Strength, feedback.Details.Strenghts),
+		Strenghts:     helpers.Coalesce(cmd.Strength, feedback.Details.Strengths),
 		Opportunities: helpers.Coalesce(cmd.Opportunities, feedback.Details.Opportunities),
 		Additional:    helpers.Coalesce(cmd.Additional, feedback.Details.Additional),
 		Rating:        rating,
 		EnoughData:    enoughData,
+	})
+
+	return nil
+}
+
+type CreateSummary struct {
+	Summary     string
+	ActionItems []string
+}
+
+func (cmd CreateSummary) Perform(gctx golly.Context, aggregate eventsource.Aggregate) error {
+	feedback := aggregate.(*Aggregate)
+
+	orm.
+		DB(gctx).
+		Model(feedback.Summary).
+		Find(&feedback.Summary, "feedback_id = ?", feedback.ID)
+
+	if feedback.Summary.ID == uuid.Nil {
+		id, _ := uuid.NewV7()
+		eventsource.Apply(gctx, aggregate, SummaryCreated{
+			ID:             id,
+			OrganizationID: feedback.OrganizationID,
+			EmployeeID:     feedback.EmployeeID,
+			FeedbackID:     feedback.ID,
+		})
+	}
+
+	b, _ := json.Marshal(cmd.ActionItems)
+
+	eventsource.Apply(gctx, aggregate, SummaryUpdated{
+		Summary:     cmd.Summary,
+		ActionItems: string(b),
 	})
 
 	return nil
