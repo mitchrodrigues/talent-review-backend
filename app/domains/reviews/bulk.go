@@ -6,13 +6,12 @@ import (
 	"time"
 
 	"github.com/golly-go/golly"
+	"github.com/golly-go/golly/errors"
 	"github.com/golly-go/plugins/eventsource"
-	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/employees"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/reviews/feedback"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
-	"gorm.io/gorm"
 )
 
 type CreateBulkFeedbackInput struct {
@@ -26,59 +25,61 @@ func CreateBulkFeedback(gctx golly.Context, input CreateBulkFeedbackInput, metad
 	ident := identity.FromContext(gctx)
 
 	results := []Feedback{}
-	db := orm.DB(gctx)
 
-	emps, err := employees.Service(gctx).FindEmployeesByIDS(gctx, input.EmployeeIDs)
+	manager, err := employees.Service(gctx).FindEmployeeByUserID(gctx, ident.UID)
+	if err != nil {
+		return []Feedback{}, errors.WrapGeneric(fmt.Errorf("you are not a manager of any team"))
+	}
+
+	emps, err := employees.Service(gctx).FindEmployeesByManagerAndIDS(gctx, manager.ID, input.EmployeeIDs...)
 	if err != nil {
 		return nil, err
 	}
 
-	err = db.Transaction(func(tx *gorm.DB) error {
-		tCtx := orm.SetDBOnContext(gctx.Dup(), tx)
+	if len(emps) == 0 {
+		return nil, errors.WrapGeneric(fmt.Errorf("you do not have any employees matching the criteria"))
+	}
 
-		for _, employee := range emps {
-			emails := input.AdditionalEmails
+	for _, employee := range emps {
+		emails := input.AdditionalEmails
 
-			if input.IncludeTeam {
-				teamMates, err := getTeamMates(gctx, employee.TeamID)
-				if err != nil {
-					return err
-				}
-
-				emails = append(emails, golly.Map(teamMates, func(employee employees.Employee) string {
-					return employee.Email
-				})...)
+		if input.IncludeTeam {
+			teamMates, err := getTeamMates(gctx, employee.TeamID)
+			if err != nil {
+				return results, err
 			}
 
-			emails = golly.Unique(emails)
-
-			for _, email := range emails {
-				if strings.EqualFold(email, employee.Email) {
-					continue
-				}
-
-				gctx.Logger().Debugf("Starting Process Of Bulk Feedback: %#v", employee)
-
-				record := Feedback{}
-
-				err := eventsource.Call(tCtx, &record.Aggregate, feedback.Create{
-					CollectionEndAt: input.CollectionEndAt,
-					EmployeeID:      employee.ID,
-					OrganizationID:  ident.OrganizationID,
-					Email:           email,
-				}, metadata)
-
-				if err != nil {
-					return err
-				}
-
-				results = append(results, record)
-			}
-
+			emails = append(emails, golly.Map(teamMates, func(employee employees.Employee) string {
+				return employee.Email
+			})...)
 		}
-		return nil
-	})
 
+		emails = golly.Unique(emails)
+
+		for _, email := range emails {
+			if strings.EqualFold(email, employee.Email) {
+				continue
+			}
+
+			gctx.Logger().Debugf("Starting Process Of Bulk Feedback: %#v", employee)
+
+			record := Feedback{}
+
+			err := eventsource.Call(gctx, &record.Aggregate, feedback.Create{
+				CollectionEndAt: input.CollectionEndAt,
+				EmployeeID:      employee.ID,
+				OrganizationID:  ident.OrganizationID,
+				Email:           email,
+			}, metadata)
+
+			if err != nil {
+				return results, err
+			}
+
+			results = append(results, record)
+		}
+
+	}
 	return results, err
 }
 

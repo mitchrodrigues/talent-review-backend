@@ -7,7 +7,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// MockEmployeeService is a mock implementation of the EmployeeService interface
 type MockEmployeeService struct {
 	mock.Mock
 }
@@ -32,17 +31,7 @@ func (m *MockEmployeeService) FindEmployeesByManagerID(gctx golly.Context, manag
 	return args.Get(0).([]Employee), args.Error(1)
 }
 
-func (m *MockEmployeeService) FindEmployeeIDsByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) (uuid.UUIDs, error) {
-	args := m.Called(gctx, managerID, scopes)
-	return args.Get(0).(uuid.UUIDs), args.Error(1)
-}
-
-func (m *MockEmployeeService) FindEmployeeIDsByManagerUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) (uuid.UUIDs, error) {
-	args := m.Called(gctx, userID, scopes)
-	return args.Get(0).(uuid.UUIDs), args.Error(1)
-}
-
-func (m *MockEmployeeService) FindEmployeesByManagersUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error) {
+func (m *MockEmployeeService) FindEmployeesByManagerUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error) {
 	args := m.Called(gctx, userID, scopes)
 	return args.Get(0).([]Employee), args.Error(1)
 }
@@ -50,6 +39,16 @@ func (m *MockEmployeeService) FindEmployeesByManagersUserID(gctx golly.Context, 
 func (m *MockEmployeeService) FindEmployeeByEmailAndOrganizationID(gctx golly.Context, email string, organizationID uuid.UUID) (Employee, error) {
 	args := m.Called(gctx, email, organizationID)
 	return args.Get(0).(Employee), args.Error(1)
+}
+
+func (m *MockEmployeeService) FindEmployeesByManagerAndIDS(gctx golly.Context, managerID uuid.UUID, employeeIDs ...uuid.UUID) ([]Employee, error) {
+	args := m.Called(gctx, managerID, employeeIDs)
+	return args.Get(0).([]Employee), args.Error(1)
+}
+
+func (m *MockEmployeeService) PluckEmployeeIDsByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) (uuid.UUIDs, error) {
+	args := m.Called(gctx, managerID, scopes)
+	return args.Get(0).(uuid.UUIDs), args.Error(1)
 }
 
 func (m *MockEmployeeService) FindEmployeeByID(gctx golly.Context, id uuid.UUID) (Employee, error) {

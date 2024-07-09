@@ -139,9 +139,17 @@ var (
 				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
 					ident := identity.FromContext(wctx.Context)
 
+					manager, err := employees.
+						Service(wctx.Context).
+						FindEmployeeByUserID(wctx.Context, ident.UID)
+
+					if err != nil {
+						return nil, err
+					}
+
 					employeeIDs, err := employees.
 						Service(wctx.Context).
-						FindEmployeeIDsByManagerUserID(wctx.Context, ident.UID)
+						PluckEmployeeIDsByManagerID(wctx.Context, manager.ID)
 
 					if err != nil {
 						return nil, err

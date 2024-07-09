@@ -3,6 +3,7 @@ package reviews
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -69,14 +70,13 @@ func TestFeedbacks(t *testing.T) {
 	managerUserID := uuid.New()
 	organizationID := uuid.New()
 
-	manager := employees.NewTestEmployee(uuid.New(), organizationID, &managerUserID)
+	manager := employees.NewTestEmployee(uuid.New(), organizationID, "manager@example.com", &managerUserID)
 	orm.DB(gctx).Create(&manager)
 
 	team := employees.NewTestTeam(uuid.New(), manager.OrganizationID, manager.ID)
 	orm.DB(gctx).Create(&team)
 
-	employee := employees.NewTestEmployee(uuid.New(), organizationID, nil)
-	employee.TeamID = &team.ID
+	employee := employees.NewTestEmployeeWithTeam(uuid.New(), organizationID, "testemployee@example.com", team.ID)
 
 	orm.DB(gctx).Create(&employee)
 
@@ -279,7 +279,7 @@ func TestFeedbackForCode(t *testing.T) {
 	orm.DB(gctx).Create(&fb)
 
 	// Seed the database with an employee entry
-	employee := employees.NewTestEmployee(fb.EmployeeID, uuid.Nil, nil)
+	employee := employees.NewTestEmployee(fb.EmployeeID, uuid.Nil, "testemployee@examlpe.com", nil)
 	orm.DB(gctx).Create(&employee)
 
 	// Define test cases
@@ -515,6 +515,8 @@ func TestCreateFeedbacks_Integration(t *testing.T) {
 		variables map[string]interface{}
 		expected  []CreateFeedback
 		hasError  bool
+		empty     bool
+		errorMsg  string
 	}
 
 	// Set up the test context and seed the database
@@ -524,7 +526,7 @@ func TestCreateFeedbacks_Integration(t *testing.T) {
 	managerUserID := uuid.New()
 	organizationID := uuid.New()
 
-	manager := employees.NewTestEmployee(uuid.New(), organizationID, &managerUserID)
+	manager := employees.NewTestEmployee(uuid.New(), organizationID, "manager@example.com", &managerUserID)
 	orm.DB(gctx).Create(&manager)
 
 	// Team with the manager
@@ -534,7 +536,7 @@ func TestCreateFeedbacks_Integration(t *testing.T) {
 	// Employees in the team
 	emps := make([]employees.Employee, 2)
 	for pos := range emps {
-		emps[pos] = employees.NewTestEmployee(uuid.New(), organizationID, nil)
+		emps[pos] = employees.NewTestEmployeeWithTeam(uuid.New(), organizationID, fmt.Sprintf("testemployee+%d@example.com", pos), team.ID)
 		orm.DB(gctx).Create(&emps[pos])
 	}
 
@@ -562,6 +564,7 @@ func TestCreateFeedbacks_Integration(t *testing.T) {
 				{Email: "additional2@example.com"},
 			},
 			hasError: false,
+			empty:    false,
 		},
 		{
 			name: "User not manager of the team",
@@ -580,7 +583,9 @@ func TestCreateFeedbacks_Integration(t *testing.T) {
 					},
 				},
 			},
+			empty:    true,
 			hasError: true,
+			errorMsg: "you are not a manager of any team",
 		},
 		{
 			name: "Manager not in the same organization",
@@ -599,7 +604,30 @@ func TestCreateFeedbacks_Integration(t *testing.T) {
 					},
 				},
 			},
+			empty:    true,
 			hasError: true,
+			errorMsg: "you are not a manager of any team",
+		},
+		{
+			name: "No employees found",
+			identity: identity.Identity{
+				UID:            managerUserID,
+				OrganizationID: organizationID,
+			},
+			variables: map[string]interface{}{
+				"input": map[string]interface{}{
+					"employeeIDs":     []string{uuid.New().String(), uuid.New().String()}, // IDs not matching any employees
+					"includeTeam":     true,
+					"collectionEndAt": time.Now().Add(7 * 24 * time.Hour).Format(time.RFC3339),
+					"additionalEmails": []string{
+						"additional1@example.com",
+						"additional2@example.com",
+					},
+				},
+			},
+			empty:    true,
+			hasError: true,
+			errorMsg: "you do not have any employees matching the criteria",
 		},
 	}
 
@@ -623,6 +651,9 @@ func TestCreateFeedbacks_Integration(t *testing.T) {
 
 			if tc.hasError {
 				assert.NotNil(t, r.Errors)
+				if tc.errorMsg != "" {
+					assert.Contains(t, r.Errors[0].Message, tc.errorMsg)
+				}
 				return
 			}
 
@@ -635,6 +666,11 @@ func TestCreateFeedbacks_Integration(t *testing.T) {
 
 			err = json.Unmarshal(b, &results)
 			assert.NoError(t, err)
+
+			if tc.empty {
+				assert.Len(t, results, 0)
+				return
+			}
 
 			for _, expected := range tc.expected {
 				result := golly.Find(results, func(result CreateFeedback) bool {

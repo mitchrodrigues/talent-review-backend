@@ -252,7 +252,7 @@ var (
 				Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
 					ident := identity.FromContext(ctx.Context)
 
-					return Service(ctx.Context).FindEmployeesByManagersUserID(
+					return Service(ctx.Context).FindEmployeesByManagerUserID(
 						ctx.Context,
 						ident.UID,
 						employeeFilter.Scopes(params.Args["filter"])...)

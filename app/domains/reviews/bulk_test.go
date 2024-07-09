@@ -2,20 +2,18 @@ package reviews
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/eventsource"
-	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/employees"
-	"github.com/mitchrodrigues/talent-review-backend/app/domains/employees/employee"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// Define your test function
 func TestCreateBulkFeedback(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -33,9 +31,12 @@ func TestCreateBulkFeedback(t *testing.T) {
 				CollectionEndAt:  time.Now().Add(24 * time.Hour),
 			},
 			mockSetup: func(gctx golly.Context, employeeService *employees.MockEmployeeService, callService *eventsource.MockCommandHandler) {
-				employeeService.On("FindEmployeesByIDS", mock.Anything, mock.Anything).Return([]employees.Employee{
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, Email: "employee1@example.com"}},
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, Email: "employee2@example.com"}},
+				managerID := uuid.New()
+				organizationID := uuid.New()
+				employeeService.On("FindEmployeeByUserID", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(employees.NewTestEmployee(managerID, organizationID, "manager@example.com", nil), nil)
+				employeeService.On("FindEmployeesByManagerAndIDS", mock.Anything, managerID, mock.Anything).Return([]employees.Employee{
+					employees.NewTestEmployee(uuid.New(), organizationID, "employee1@example.com", nil),
+					employees.NewTestEmployee(uuid.New(), organizationID, "employee2@example.com", nil),
 				}, nil)
 				callService.On("Call", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Times(4)
 			},
@@ -51,9 +52,12 @@ func TestCreateBulkFeedback(t *testing.T) {
 				CollectionEndAt:  time.Now().Add(24 * time.Hour),
 			},
 			mockSetup: func(gctx golly.Context, employeeService *employees.MockEmployeeService, callService *eventsource.MockCommandHandler) {
-				employeeService.On("FindEmployeesByIDS", mock.Anything, mock.Anything).Return([]employees.Employee{
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, Email: "employee3@example.com"}},
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, Email: "employee4@example.com"}},
+				managerID := uuid.New()
+				organizationID := uuid.New()
+				employeeService.On("FindEmployeeByUserID", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(employees.NewTestEmployee(managerID, organizationID, "manager@example.com", nil), nil)
+				employeeService.On("FindEmployeesByManagerAndIDS", mock.Anything, managerID, mock.Anything).Return([]employees.Employee{
+					employees.NewTestEmployee(uuid.New(), organizationID, "employee3@example.com", nil),
+					employees.NewTestEmployee(uuid.New(), organizationID, "employee4@example.com", nil),
 				}, nil)
 				callService.On("Call", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Times(2)
 			},
@@ -69,18 +73,21 @@ func TestCreateBulkFeedback(t *testing.T) {
 				CollectionEndAt:  time.Now().Add(24 * time.Hour),
 			},
 			mockSetup: func(gctx golly.Context, employeeService *employees.MockEmployeeService, callService *eventsource.MockCommandHandler) {
+				managerID := uuid.New()
+				organizationID := uuid.New()
 				teamID := uuid.New()
-				employeeService.On("FindEmployeesByIDS", mock.Anything, mock.Anything).Return([]employees.Employee{
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, TeamID: &teamID, Email: "employee5@example.com"}},
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, TeamID: &teamID, Email: "employee6@example.com"}},
+				employeeService.On("FindEmployeeByUserID", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(employees.NewTestEmployee(managerID, organizationID, "manager@example.com", nil), nil)
+				employeeService.On("FindEmployeesByManagerAndIDS", mock.Anything, managerID, mock.Anything).Return([]employees.Employee{
+					employees.NewTestEmployeeWithTeam(uuid.New(), organizationID, "employee5@example.com", teamID),
+					employees.NewTestEmployeeWithTeam(uuid.New(), organizationID, "employee6@example.com", teamID),
 				}, nil)
-				employeeService.On("FindEmployeesForTeam", mock.Anything, mock.Anything, mock.Anything).Return([]employees.Employee{
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, Email: "teammate1@example.com"}},
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, Email: "teammate2@example.com"}},
+				employeeService.On("FindEmployeesForTeam", mock.Anything, teamID, mock.Anything).Return([]employees.Employee{
+					employees.NewTestEmployee(uuid.New(), organizationID, "teammate1@example.com", nil),
+					employees.NewTestEmployee(uuid.New(), organizationID, "teammate2@example.com", nil),
 				}, nil)
 				callService.On("Call", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Times(4)
 			},
-			expectedResult: 4, // 2 employees x (2 teammates) = 4 feedback entries
+			expectedResult: 4, // 2 employees x 2 teammates = 4 feedback entries
 			expectedError:  nil,
 		},
 		{
@@ -92,19 +99,53 @@ func TestCreateBulkFeedback(t *testing.T) {
 				CollectionEndAt:  time.Now().Add(24 * time.Hour),
 			},
 			mockSetup: func(gctx golly.Context, employeeService *employees.MockEmployeeService, callService *eventsource.MockCommandHandler) {
+				managerID := uuid.New()
+				organizationID := uuid.New()
 				teamID := uuid.New()
-				employeeService.On("FindEmployeesByIDS", mock.Anything, mock.Anything).Return([]employees.Employee{
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, TeamID: &teamID, Email: "employee5@example.com"}},
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, TeamID: &teamID, Email: "employee6@example.com"}},
+				employeeService.On("FindEmployeeByUserID", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(employees.NewTestEmployee(managerID, organizationID, "manager@example.com", nil), nil)
+				employeeService.On("FindEmployeesByManagerAndIDS", mock.Anything, managerID, mock.Anything).Return([]employees.Employee{
+					employees.NewTestEmployeeWithTeam(uuid.New(), organizationID, "employee5@example.com", teamID),
+					employees.NewTestEmployeeWithTeam(uuid.New(), organizationID, "employee6@example.com", teamID),
 				}, nil)
-				employeeService.On("FindEmployeesForTeam", mock.Anything, mock.Anything, mock.Anything).Return([]employees.Employee{
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, Email: "teammate1@example.com"}},
-					{Aggregate: employee.Aggregate{ModelUUID: orm.ModelUUID{ID: uuid.New()}, Email: "teammate2@example.com"}},
+				employeeService.On("FindEmployeesForTeam", mock.Anything, teamID, mock.Anything).Return([]employees.Employee{
+					employees.NewTestEmployee(uuid.New(), organizationID, "teammate1@example.com", nil),
+					employees.NewTestEmployee(uuid.New(), organizationID, "teammate2@example.com", nil),
 				}, nil)
 				callService.On("Call", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Times(12)
 			},
-			expectedResult: 12, // 2 employees x (2 teammates) = 4 feedback entries
+			expectedResult: 12, // Multiple combinations of employees and emails including team and additional emails
 			expectedError:  nil,
+		},
+		{
+			name: "Manager not found",
+			input: CreateBulkFeedbackInput{
+				EmployeeIDs:      []uuid.UUID{uuid.New(), uuid.New()},
+				AdditionalEmails: []string{"test1@example.com", "test2@example.com"},
+				IncludeTeam:      false,
+				CollectionEndAt:  time.Now().Add(24 * time.Hour),
+			},
+			mockSetup: func(gctx golly.Context, employeeService *employees.MockEmployeeService, callService *eventsource.MockCommandHandler) {
+				employeeService.On("FindEmployeeByUserID", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(employees.Employee{}, fmt.Errorf("manager not found"))
+			},
+			expectedResult: 0,
+			expectedError:  fmt.Errorf("you are not a manager of any team"),
+		},
+		{
+			name: "No employees found",
+			input: CreateBulkFeedbackInput{
+				EmployeeIDs:      []uuid.UUID{uuid.New(), uuid.New()},
+				AdditionalEmails: []string{"test1@example.com", "test2@example.com"},
+				IncludeTeam:      false,
+				CollectionEndAt:  time.Now().Add(24 * time.Hour),
+			},
+			mockSetup: func(gctx golly.Context, employeeService *employees.MockEmployeeService, callService *eventsource.MockCommandHandler) {
+				managerID := uuid.New()
+				organizationID := uuid.New()
+				employeeService.On("FindEmployeeByUserID", mock.Anything, mock.AnythingOfType("uuid.UUID")).Return(employees.NewTestEmployee(managerID, organizationID, "manager@example.com", nil), nil)
+				employeeService.On("FindEmployeesByManagerAndIDS", mock.Anything, managerID, mock.Anything).Return([]employees.Employee{}, nil)
+			},
+			expectedResult: 0,
+			expectedError:  fmt.Errorf("you do not have any employees matching the criteria"),
 		},
 	}
 
@@ -114,7 +155,6 @@ func TestCreateBulkFeedback(t *testing.T) {
 			mockHandler := new(eventsource.MockCommandHandler)
 
 			gctx := golly.NewContext(context.TODO())
-			gctx = orm.CreateTestContext(gctx)
 
 			employees.UseMockService(gctx, mockEmployeeService)
 			eventsource.UseMockHandler(gctx, mockHandler)
@@ -126,7 +166,11 @@ func TestCreateBulkFeedback(t *testing.T) {
 			result, err := CreateBulkFeedback(gctx, tt.input, eventsource.Metadata{})
 
 			// Assertions
-			assert.Equal(t, tt.expectedError, err)
+			if tt.expectedError != nil {
+				assert.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
 			assert.Len(t, result, tt.expectedResult)
 
 			// Assert that the expectations were met
