@@ -77,9 +77,18 @@ func UpdateFeedbackSummary(gctx golly.Context, agg eventsource.Aggregate, evt ev
 				return
 			}
 
+			itemsPrompt := tara.NewFollowUpItemsPrompt()
+			itemsPrompt.AddPreviousPrompts(prompt)
+
+			err = tara.Generate(gctx, itemsPrompt)
+			if err != nil {
+				ctx.Logger().Warnf("cannot generate summary for feedback %s %v", fb.ID.String(), err)
+				return
+			}
+
 			err = eventsource.Call(ctx, agg, feedback.CreateSummary{
 				Summary:     prompt.Summary,
-				ActionItems: prompt.ActionItems.Values(),
+				ActionItems: itemsPrompt.FollowUpItems.Values(),
 			}, eventsource.Metadata{})
 
 			if err != nil {
