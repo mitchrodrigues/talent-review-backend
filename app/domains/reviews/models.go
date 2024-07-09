@@ -13,3 +13,9 @@ type FeedbackDetails struct {
 }
 
 func (FeedbackDetails) TableName() string { return "feedback_details" }
+
+type FeedbackSummary struct {
+	feedback.FeedbackSummary
+}
+
+func (FeedbackDetails) FeedbackSummary() string { return "feedback_summaries" }

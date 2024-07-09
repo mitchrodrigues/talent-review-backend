@@ -6,10 +6,9 @@ import (
 	"github.com/golly-go/plugins/orm"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/accounts"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/employees"
-	"github.com/mitchrodrigues/talent-review-backend/app/domains/prompts"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/reviews/feedback"
+	"github.com/mitchrodrigues/talent-review-backend/app/domains/tara"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/mailgun"
-	"github.com/mitchrodrigues/talent-review-backend/app/utils/openai"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/wsyiwig"
 	"gorm.io/gorm"
 )
@@ -66,15 +65,13 @@ func UpdateFeedbackSummary(gctx golly.Context, agg eventsource.Aggregate, evt ev
 			opportunities, _ := wsyiwig.ExtractTextFromJSON(details.Opportunities)
 			additional, _ := wsyiwig.ExtractTextFromJSON(details.Additional)
 
-			prompt := prompts.SummarizeFeedbackPrompt{
-				SummarizeFeedbackInput: prompts.SummarizeFeedbackInput{
-					Strengths:          strengths,
-					Opportunities:      opportunities,
-					AdditionalComments: additional,
-				},
-			}
+			prompt := tara.NewSummaryFeedbackPrompt(tara.SummarizeFeedbackInput{
+				Strengths:          strengths,
+				Opportunities:      opportunities,
+				AdditionalComments: additional,
+			})
 
-			_, err = openai.Completion(ctx, openai.LLM(ctx), &prompt)
+			err = tara.Generate(gctx, prompt)
 			if err != nil {
 				ctx.Logger().Warnf("cannot generate summary for feedback %s %v", fb.ID.String(), err)
 				return

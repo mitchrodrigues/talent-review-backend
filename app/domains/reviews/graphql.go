@@ -1,6 +1,7 @@
 package reviews
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"time"
@@ -46,6 +47,34 @@ var (
 				Type: graphql.Boolean,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					return p.Source.(FeedbackDetails).EnoughData, nil
+				},
+			},
+		},
+	})
+
+	feedbackSummaryType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "FeedbackSummary",
+		Fields: graphql.Fields{
+			"id": {
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(FeedbackSummary).ID, nil
+				},
+			},
+			"summary": {
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(FeedbackSummary).Summary, nil
+				},
+			},
+			"actionItems": {
+				Type: graphql.NewList(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					var items []string
+					str := p.Source.(FeedbackSummary).ActionItems
+
+					_ = json.Unmarshal([]byte(str), &items)
+					return items, nil
 				},
 			},
 		},
@@ -122,11 +151,42 @@ var (
 					},
 				}),
 			},
+			"summary": {
+				Type: feedbackSummaryType,
+				Resolve: gql.NewHandler(gql.Options{
+					Public: true,
+					Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
+						feedbackID := params.Source.(Feedback).ID
+
+						return Service(wctx.Context).
+							FindFeedbackSummary_Permissioned(wctx.Context, feedbackID)
+					},
+				}),
+			},
 		},
 	})
 
 	queries = graphql.Fields{
 		//********** Feedback ***************//
+		"feedback": {
+			Type: feedbackType,
+			Args: graphql.FieldConfigArgument{
+				"id": {Type: graphql.NewNonNull(graphql.String)},
+			},
+			Resolve: gql.NewHandler(gql.Options{
+				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
+					feedback, err := Service(wctx.Context).FindFeedbackByID(wctx.Context,
+						uuid.MustParse(params.Args["id"].(string)),
+						common.UserIsManagerScope(wctx.Context, "feedbacks"))
+
+					if err != nil {
+						return nil, err
+					}
+
+					return feedback, nil
+				},
+			}),
+		},
 		"feedbacks": {
 			Name: "feedbacks",
 			Args: graphql.FieldConfigArgument{
@@ -264,7 +324,7 @@ var (
 						return nil, err
 					}
 
-					fb, err := Service(wctx.Context).FindFeedbackByIDAndCode(wctx.Context, id, params.Args["code"].(string))
+					fb, err := Service(wctx.Context).FindFeedbackByIDAndCode_Unsafe(wctx.Context, id, params.Args["code"].(string))
 					if err != nil {
 						return nil, err
 					}
@@ -293,7 +353,7 @@ var (
 						return nil, err
 					}
 
-					fb, err := Service(wctx.Context).FindFeedbackByIDAndCode(wctx.Context, id, params.Args["code"].(string))
+					fb, err := Service(wctx.Context).FindFeedbackByIDAndCode_Unsafe(wctx.Context, id, params.Args["code"].(string))
 					if err != nil {
 						return nil, err
 					}

@@ -72,7 +72,7 @@ func TestFindFeedbackByIDAndCode(t *testing.T) {
 	orm.DB(gctx).Create(&fb)
 
 	service := DefaultReviewService{}
-	result, err := service.FindFeedbackByIDAndCode(gctx, fb.ID, "test-code")
+	result, err := service.FindFeedbackByIDAndCode_Unsafe(gctx, fb.ID, "test-code")
 
 	assert.NoError(t, err)
 	assert.Equal(t, fb.ID, result.ID)

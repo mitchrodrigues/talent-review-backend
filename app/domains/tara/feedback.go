@@ -1,4 +1,4 @@
-package prompts
+package tara
 
 import (
 	"github.com/golly-go/golly"
@@ -36,6 +36,7 @@ func (SummarizeFeedbackPrompt) Rules(gctx golly.Context) []string {
 		"The summary should be concise and cover key points of the feedback.",
 		"Identify and highlight any action items for the manager to review.",
 		"Use simple,concise, and professional wording.",
+		"If their are examples in the feedback be sure to include them in the summary",
 		"Do not editorialize the feedback.",
 		"Do not omit details from the feedback",
 	}
@@ -50,5 +51,11 @@ func (prompt SummarizeFeedbackPrompt) Scenario(gctx golly.Context) []string {
 		"Summarize the feedback clearly.",
 		"Call out any action items that may exist for the manager to review.",
 		"Ensure that the summary is simple, concise, and uses professional wording without editorializing.",
+	}
+}
+
+func NewSummaryFeedbackPrompt(input SummarizeFeedbackInput) *SummarizeFeedbackPrompt {
+	return &SummarizeFeedbackPrompt{
+		SummarizeFeedbackInput: input,
 	}
 }

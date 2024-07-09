@@ -1,10 +1,13 @@
 package reviews
 
 import (
+	"fmt"
+
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/common"
+	"gorm.io/gorm"
 )
 
 const (
@@ -13,10 +16,13 @@ const (
 
 type ReviewService interface {
 	FindFeedbackForCode(gctx golly.Context, code string) (Feedback, error)
-	FindFeedbackByID(gctx golly.Context, id uuid.UUID) (Feedback, error)
-	FindFeedbackByIDAndCode(gctx golly.Context, id uuid.UUID, code string) (Feedback, error)
-	FindFeedbackDetailsByFeedbackID_Unsafe(gctx golly.Context, id uuid.UUID) (FeedbackDetails, error)
+	FindFeedbackByID(gctx golly.Context, id uuid.UUID, scopes ...func(*gorm.DB) *gorm.DB) (Feedback, error)
+
 	FindFeedbackEmailsBySearch(gctx golly.Context, email string) ([]string, error)
+	FindFeedbackSummary_Permissioned(gctx golly.Context, feedbackID uuid.UUID) (FeedbackSummary, error)
+
+	FindFeedbackByIDAndCode_Unsafe(gctx golly.Context, id uuid.UUID, code string) (Feedback, error)
+	FindFeedbackDetailsByFeedbackID_Unsafe(gctx golly.Context, id uuid.UUID) (FeedbackDetails, error)
 }
 
 type DefaultReviewService struct{}
@@ -33,19 +39,42 @@ func (DefaultReviewService) FindFeedbackForCode(gctx golly.Context, code string)
 	return feedback, err
 }
 
-func (DefaultReviewService) FindFeedbackByID(gctx golly.Context, id uuid.UUID) (Feedback, error) {
+func (DefaultReviewService) FindFeedbackByID(gctx golly.Context, id uuid.UUID, scopes ...func(*gorm.DB) *gorm.DB) (Feedback, error) {
 	var feedback Feedback
 
 	err := orm.
 		DB(gctx).
 		Model(feedback).
-		Find(&feedback, "id = ?", id).
+		Scopes(common.OrganizationIDScopeForContext(gctx, "feedbacks")).
+		Scopes(scopes...).
+		Find(&feedback, "feedbacks.id = ?", id).
 		Error
 
 	return feedback, err
 }
 
-func (DefaultReviewService) FindFeedbackByIDAndCode(gctx golly.Context, id uuid.UUID, code string) (Feedback, error) {
+func (DefaultReviewService) FindFeedbackSummary_Permissioned(gctx golly.Context, feedbackID uuid.UUID) (FeedbackSummary, error) {
+	return golly.LoadData(
+		gctx,
+		fmt.Sprintf("feedbackSummaries:%s", feedbackID),
+		func(gctx golly.Context) (FeedbackSummary, error) {
+			var summary FeedbackSummary
+
+			err := orm.
+				DB(gctx).
+				Model(summary).
+				Scopes(
+					common.OrganizationIDScopeForContext(gctx, "feedback_summaries"),
+					common.UserIsManagerScope(gctx, "feedback_summaries"),
+				).
+				Find(&summary, "feedback_id = ?", feedbackID).
+				Error
+
+			return summary, err
+		})
+}
+
+func (DefaultReviewService) FindFeedbackByIDAndCode_Unsafe(gctx golly.Context, id uuid.UUID, code string) (Feedback, error) {
 	var feedback Feedback
 
 	err := orm.
