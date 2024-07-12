@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/eventsource"
@@ -47,6 +49,14 @@ func submitFeedback(gctx golly.Context, cmd *cobra.Command, args []string) error
 	}
 
 	_ = eventsource.Call(gctx, &fb.Aggregate, feedback.Submit{}, eventsource.Metadata{})
+
+	if len(args) > 1 {
+		i, _ := strconv.Atoi(args[1])
+
+		time.Sleep(time.Duration(i) * time.Second)
+	} else {
+		time.Sleep(5 * time.Second)
+	}
 
 	return nil
 }
