@@ -23,6 +23,8 @@ type CreateBulkFeedbackInput struct {
 }
 
 func CreateBulkFeedback(gctx golly.Context, input CreateBulkFeedbackInput, metadata eventsource.Metadata) ([]Feedback, error) {
+	gctx.Logger().Debugf("Starting createbulk feedback: %#v\n", input)
+
 	ident := identity.FromContext(gctx)
 
 	results := []Feedback{}
@@ -56,7 +58,13 @@ func CreateBulkFeedback(gctx golly.Context, input CreateBulkFeedbackInput, metad
 		}
 
 		if input.IncludeDirects {
-			emps, _ := employees.Service(gctx).FindEmployeesByManagerID(gctx, employee.ID)
+			gctx.Logger().Debugf("Including directs for employee %s", employee.ID)
+
+			emps, err := employees.Service(gctx).FindEmployeesByManagerID(gctx, employee.ID)
+			if err != nil {
+				return results, err
+			}
+
 			if len(emps) > 0 {
 				emails = append(emails, golly.Map(emps, func(e employees.Employee) string {
 					return e.Email

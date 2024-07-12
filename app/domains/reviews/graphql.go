@@ -417,7 +417,7 @@ var (
 					})
 
 					includeTeam, _ := helpers.ExtractArg[bool](params.Input, "includeTeam")
-					includeDirects, _ := helpers.ExtractArg[bool](params.Input, "includeDirecs")
+					includeDirects, _ := helpers.ExtractArg[bool](params.Input, "includeDirects")
 					additionalEmails, _ := helpers.ExtractArg[[]interface{}](params.Input, "additionalEmails")
 
 					return CreateBulkFeedback(ctx.Context, CreateBulkFeedbackInput{
