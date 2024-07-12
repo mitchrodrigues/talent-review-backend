@@ -9,7 +9,7 @@ func Initializer(app golly.Application) error {
 	InitGraphQL()
 
 	eventsource.Subscribe("feedback.Aggregate", "feedback.Created", SendFeedbackEmail)
-	eventsource.Subscribe("feedback.Aggregate", "feedback.Submitted", UpdateFeedbackSummary)
+	eventsource.Subscribe("feedback.Aggregate", "feedback.Submitted", UpdateFeedbackSummaryAsync)
 
 	return nil
 }

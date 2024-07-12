@@ -2,14 +2,10 @@ package main
 
 import (
 	"fmt"
-	"strconv"
-	"time"
 
 	"github.com/golly-go/golly"
-	"github.com/golly-go/plugins/eventsource"
 	"github.com/google/uuid"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/reviews"
-	"github.com/mitchrodrigues/talent-review-backend/app/domains/reviews/feedback"
 	"github.com/mitchrodrigues/talent-review-backend/app/initializers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/mailgun"
 	"github.com/spf13/cobra"
@@ -23,8 +19,8 @@ var commands = []*cobra.Command{
 		Run:  golly.Command(testEmail),
 	},
 	{
-		Use:  "submit-feedback [feedbackID]",
-		Long: "submit a feedback",
+		Use:  "update-summary [feedbackID]",
+		Long: "update tara summary for a feedback",
 		Args: cobra.MinimumNArgs(1),
 		Run:  golly.Command(submitFeedback),
 	},
@@ -48,17 +44,7 @@ func submitFeedback(gctx golly.Context, cmd *cobra.Command, args []string) error
 		return fmt.Errorf("no such feedback %s", args[0])
 	}
 
-	_ = eventsource.Call(gctx, &fb.Aggregate, feedback.Submit{}, eventsource.Metadata{})
-
-	if len(args) > 1 {
-		i, _ := strconv.Atoi(args[1])
-
-		time.Sleep(time.Duration(i) * time.Second)
-	} else {
-		time.Sleep(5 * time.Second)
-	}
-
-	return nil
+	return reviews.UpdateFeedbackSummary(gctx, &fb.Aggregate)
 }
 
 func testEmail(gctx golly.Context, cmd *cobra.Command, args []string) error {

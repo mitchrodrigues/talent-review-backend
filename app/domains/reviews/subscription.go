@@ -2,6 +2,7 @@ package reviews
 
 import (
 	"github.com/golly-go/golly"
+	"github.com/golly-go/golly/errors"
 	"github.com/golly-go/plugins/eventsource"
 	"github.com/golly-go/plugins/orm"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/accounts"
@@ -49,55 +50,57 @@ func SendFeedbackEmail(gctx golly.Context, agg eventsource.Aggregate, evt events
 	return nil
 }
 
-func UpdateFeedbackSummary(gctx golly.Context, agg eventsource.Aggregate, evt eventsource.Event) error {
+func UpdateFeedbackSummarySubscription(gctx golly.Context, agg eventsource.Aggregate, evt eventsource.Event) error {
 	switch evt.Data.(type) {
 	case feedback.Submitted:
-		go func(ctx golly.Context, agg eventsource.Aggregate, evt eventsource.Event) {
-			fb := agg.(*feedback.Aggregate)
+		fb := agg.(*feedback.Aggregate)
 
-			details, err := Service(gctx).FindFeedbackDetailsByFeedbackID_Unsafe(gctx, fb.ID)
-			if err != nil {
-				ctx.Logger().Warnf("cannot find details for feedback %s %v", fb.ID.String(), err)
-				return
+		go func(gctx golly.Context, fb *feedback.Aggregate) {
+			if err := UpdateFeedbackSummary(gctx, fb); err != nil {
+				gctx.Logger().Warnf("connot generate summary for feedback %s %v", fb.ID.String(), err)
 			}
+		}(gctx, fb)
 
-			strengths, _ := wsyiwig.ExtractTextFromJSON(details.Strengths)
-			opportunities, _ := wsyiwig.ExtractTextFromJSON(details.Opportunities)
-			additional, _ := wsyiwig.ExtractTextFromJSON(details.Additional)
+		return nil
+	}
+	return nil
+}
 
-			prompt := tara.NewSummaryFeedbackPrompt(tara.SummarizeFeedbackInput{
-				Strengths:          strengths,
-				Opportunities:      opportunities,
-				AdditionalComments: additional,
-			})
+func UpdateFeedbackSummary(gctx golly.Context, fb *feedback.Aggregate) error {
 
-			err = tara.Generate(gctx, prompt)
-			if err != nil {
-				ctx.Logger().Warnf("cannot generate summary for feedback %s %v", fb.ID.String(), err)
-				return
-			}
-
-			itemsPrompt := tara.NewFollowUpItemsPrompt()
-			itemsPrompt.AddPreviousPrompts(prompt)
-
-			err = tara.Generate(gctx, itemsPrompt)
-			if err != nil {
-				ctx.Logger().Warnf("cannot generate summary for feedback %s %v", fb.ID.String(), err)
-				return
-			}
-
-			err = eventsource.Call(ctx, agg, feedback.CreateSummary{
-				Summary:     prompt.Summary,
-				ActionItems: itemsPrompt.FollowUpItems.Values(),
-			}, eventsource.Metadata{})
-
-			if err != nil {
-				ctx.Logger().Warnf("cannot save summary for feedback %s %v", fb.ID.String(), err)
-				return
-			}
-
-		}(gctx, agg, evt)
+	details, err := Service(gctx).FindFeedbackDetailsByFeedbackID_Unsafe(gctx, fb.ID)
+	if err != nil {
+		gctx.Logger().Warnf("cannot find details for feedback %s %v", fb.ID.String(), err)
+		return err
 	}
 
-	return nil
+	strengths, _ := wsyiwig.ExtractTextFromJSON(details.Strengths)
+	opportunities, _ := wsyiwig.ExtractTextFromJSON(details.Opportunities)
+	additional, _ := wsyiwig.ExtractTextFromJSON(details.Additional)
+
+	prompt := tara.NewSummaryFeedbackPrompt(tara.SummarizeFeedbackInput{
+		Strengths:          strengths,
+		Opportunities:      opportunities,
+		AdditionalComments: additional,
+	})
+
+	err = tara.Generate(gctx, prompt)
+	if err != nil {
+		return errors.WrapGeneric(err)
+	}
+
+	itemsPrompt := tara.NewFollowUpItemsPrompt()
+	itemsPrompt.AddPreviousPrompts(prompt)
+
+	err = tara.Generate(gctx, itemsPrompt)
+	if err != nil {
+		return errors.WrapGeneric(err)
+	}
+
+	err = eventsource.Call(gctx, fb, feedback.CreateSummary{
+		Summary:     prompt.Summary,
+		ActionItems: itemsPrompt.FollowUpItems.Values(),
+	}, eventsource.Metadata{})
+
+	return errors.WrapGeneric(err)
 }
