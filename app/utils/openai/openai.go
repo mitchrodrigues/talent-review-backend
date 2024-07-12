@@ -8,9 +8,9 @@ type AIModel string
 type MessageRole string
 
 const (
-	LargeTokenModel AIModel = "gpt-4-32k"
-	StandardModel   AIModel = "gpt-4-0613"
-	FastModel       AIModel = "gpt-4-1106-preview"
+	LargeTokenModel AIModel = "gpt-4o"
+	StandardModel   AIModel = "gpt-4o"
+	FastModel       AIModel = "gpt-4o"
 	TurboModel      AIModel = "gpt-3.5-turbo-16k"
 
 	EmbeddingModel AIModel = "text-embedding-ada-002"
