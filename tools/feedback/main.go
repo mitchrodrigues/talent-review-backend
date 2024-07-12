@@ -46,7 +46,7 @@ func submitFeedback(gctx golly.Context, cmd *cobra.Command, args []string) error
 		return fmt.Errorf("no such feedback %s", args[0])
 	}
 
-	eventsource.Call(gctx, &fb.Aggregate, feedback.Submit{}, eventsource.Metadata{})
+	_ = eventsource.Call(gctx, &fb.Aggregate, feedback.Submit{}, eventsource.Metadata{})
 
 	return nil
 }
