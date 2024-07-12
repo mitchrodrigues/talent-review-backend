@@ -21,6 +21,7 @@ type ReviewService interface {
 	FindFeedbackEmailsBySearch(gctx golly.Context, email string) ([]string, error)
 	FindFeedbackSummary_Permissioned(gctx golly.Context, feedbackID uuid.UUID) (FeedbackSummary, error)
 
+	FindFeedbackByID_Unsafe(gctx golly.Context, id uuid.UUID) (Feedback, error)
 	FindFeedbackByIDAndCode_Unsafe(gctx golly.Context, id uuid.UUID, code string) (Feedback, error)
 	FindFeedbackDetailsByFeedbackID_Unsafe(gctx golly.Context, id uuid.UUID) (FeedbackDetails, error)
 }
@@ -47,6 +48,18 @@ func (DefaultReviewService) FindFeedbackByID(gctx golly.Context, id uuid.UUID, s
 		Model(feedback).
 		Scopes(common.OrganizationIDScopeForContext(gctx, "feedbacks")).
 		Scopes(scopes...).
+		Find(&feedback, "feedbacks.id = ?", id).
+		Error
+
+	return feedback, err
+}
+
+func (DefaultReviewService) FindFeedbackByID_Unsafe(gctx golly.Context, id uuid.UUID) (Feedback, error) {
+	var feedback Feedback
+
+	err := orm.
+		DB(gctx).
+		Model(feedback).
 		Find(&feedback, "feedbacks.id = ?", id).
 		Error
 

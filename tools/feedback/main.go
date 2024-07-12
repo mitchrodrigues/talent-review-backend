@@ -37,7 +37,7 @@ func main() {
 }
 
 func submitFeedback(gctx golly.Context, cmd *cobra.Command, args []string) error {
-	fb, err := reviews.Service(gctx).FindFeedbackByID(gctx, uuid.MustParse(args[0]))
+	fb, err := reviews.Service(gctx).FindFeedbackByID_Unsafe(gctx, uuid.MustParse(args[0]))
 	if err != nil {
 		return err
 	}

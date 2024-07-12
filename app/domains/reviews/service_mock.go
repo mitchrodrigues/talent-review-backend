@@ -21,6 +21,11 @@ func (m *MockReviewService) FindFeedbackByID(gctx golly.Context, id uuid.UUID, s
 	return args.Get(0).(Feedback), args.Error(1)
 }
 
+func (m *MockReviewService) FindFeedbackByID_Unsafe(gctx golly.Context, id uuid.UUID) (Feedback, error) {
+	args := m.Called(gctx, id)
+	return args.Get(0).(Feedback), args.Error(1)
+}
+
 func (m *MockReviewService) FindFeedbackByIDAndCode_Unsafe(gctx golly.Context, id uuid.UUID, code string) (Feedback, error) {
 	args := m.Called(gctx, id, code)
 	return args.Get(0).(Feedback), args.Error(1)
