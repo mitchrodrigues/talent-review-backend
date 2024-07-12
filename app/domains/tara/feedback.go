@@ -91,7 +91,7 @@ func (FollowUpItemsPrompt) Rules(gctx golly.Context) []string {
 
 func (prompt FollowUpItemsPrompt) Scenario(gctx golly.Context) []string {
 	return []string{
-		"You are given feedback about an employee. Based on this feedback, identify specific follow-up items for the manager to review.",
+		"You are given feedback about an employee. Based on this feedback, identify no more then 5 specific follow-up items for the manager to review.",
 		"Highlight any ambiguities, lack of details, or concerning issues that the manager should address.",
 		"Ensure that follow-up items are specific tasks for the manager and do not include career advice or general improvement suggestions for the employee.",
 		"Example follow-up items:",

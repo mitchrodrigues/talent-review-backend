@@ -18,6 +18,7 @@ type CreateBulkFeedbackInput struct {
 	EmployeeIDs      []uuid.UUID
 	AdditionalEmails []string
 	IncludeTeam      bool
+	IncludeDirects   bool
 	CollectionEndAt  time.Time
 }
 
@@ -52,6 +53,15 @@ func CreateBulkFeedback(gctx golly.Context, input CreateBulkFeedbackInput, metad
 			emails = append(emails, golly.Map(teamMates, func(employee employees.Employee) string {
 				return employee.Email
 			})...)
+		}
+
+		if input.IncludeDirects {
+			emps, _ := employees.Service(gctx).FindEmployeesByManagerID(gctx, employee.ID)
+			if len(emps) > 0 {
+				emails = append(emails, golly.Map(emps, func(e employees.Employee) string {
+					return e.Email
+				})...)
+			}
 		}
 
 		emails = golly.Unique(emails)

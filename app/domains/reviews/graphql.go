@@ -292,6 +292,7 @@ var (
 			"employeeIDs":      {Type: graphql.NewNonNull(graphql.NewList(graphql.String))},
 			"additionalEmails": {Type: graphql.NewList(graphql.String)},
 			"includeTeam":      {Type: graphql.Boolean},
+			"includeDirects":   {Type: graphql.Boolean},
 			"collectionEndAt":  {Type: graphql.NewNonNull(graphql.DateTime)},
 		},
 	})
@@ -416,13 +417,13 @@ var (
 					})
 
 					includeTeam, _ := helpers.ExtractArg[bool](params.Input, "includeTeam")
+					includeDirects, _ := helpers.ExtractArg[bool](params.Input, "includeDirecs")
 					additionalEmails, _ := helpers.ExtractArg[[]interface{}](params.Input, "additionalEmails")
-
-					fmt.Printf("Include Team: %#v", includeTeam)
 
 					return CreateBulkFeedback(ctx.Context, CreateBulkFeedbackInput{
 						EmployeeIDs:     employeeIDs,
 						IncludeTeam:     includeTeam,
+						IncludeDirects:  includeDirects,
 						CollectionEndAt: params.Input["collectionEndAt"].(time.Time),
 						AdditionalEmails: golly.Map(additionalEmails, func(i interface{}) string {
 							return i.(string)
