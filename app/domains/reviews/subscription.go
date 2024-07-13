@@ -68,7 +68,7 @@ func UpdateFeedbackSummarySubscription(gctx golly.Context, agg eventsource.Aggre
 
 func UpdateFeedbackSummary(gctx golly.Context, fb *feedback.Aggregate) error {
 
-	details, err := Service(gctx).FindFeedbackDetailsByFeedbackID_Unsafe(gctx, fb.ID)
+	details, err := FeedbackService(gctx).FindDetailsByFeedbackID_Unsafe(gctx, fb.ID)
 	if err != nil {
 		gctx.Logger().Warnf("cannot find details for feedback %s %v", fb.ID.String(), err)
 		return err

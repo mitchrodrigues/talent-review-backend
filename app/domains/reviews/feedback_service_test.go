@@ -26,7 +26,7 @@ func TestFindFeedbackForCode(t *testing.T) {
 	orm.DB(gctx).Create(&fb)
 
 	service := DefaultReviewService{}
-	result, err := service.FindFeedbackForCode(gctx, "test-code")
+	result, err := service.FindForCode(gctx, "test-code")
 
 	assert.NoError(t, err)
 	assert.Equal(t, fb.Code, result.Code)
@@ -49,7 +49,7 @@ func TestFindFeedbackByID(t *testing.T) {
 	orm.DB(gctx).Create(&fb)
 
 	service := DefaultReviewService{}
-	result, err := service.FindFeedbackByID(gctx, fb.ID)
+	result, err := service.FindByID(gctx, fb.ID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, fb.ID, result.ID)
@@ -72,7 +72,7 @@ func TestFindFeedbackByIDAndCode(t *testing.T) {
 	orm.DB(gctx).Create(&fb)
 
 	service := DefaultReviewService{}
-	result, err := service.FindFeedbackByIDAndCode_Unsafe(gctx, fb.ID, "test-code")
+	result, err := service.FindByIDAndCode_Unsafe(gctx, fb.ID, "test-code")
 
 	assert.NoError(t, err)
 	assert.Equal(t, fb.ID, result.ID)
@@ -103,7 +103,7 @@ func TestFindFeedbackDetailsByFeedbackID_Unsafe(t *testing.T) {
 	orm.DB(gctx).Create(&details)
 
 	service := DefaultReviewService{}
-	result, err := service.FindFeedbackDetailsByFeedbackID_Unsafe(gctx, fb.ID)
+	result, err := service.FindDetailsByFeedbackID_Unsafe(gctx, fb.ID)
 
 	assert.NoError(t, err)
 	assert.Equal(t, details.FeedbackID, result.FeedbackID)
@@ -133,7 +133,7 @@ func TestFindFeedbackEmailsBySearch(t *testing.T) {
 	orm.DB(gctx).Create(&feedback2)
 
 	service := DefaultReviewService{}
-	result, err := service.FindFeedbackEmailsBySearch(gctx, "test")
+	result, err := service.PluckEmailsForSearch(gctx, "test")
 
 	assert.NoError(t, err)
 	assert.Contains(t, result, "test1@example.com")

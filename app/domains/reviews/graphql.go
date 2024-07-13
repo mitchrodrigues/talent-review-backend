@@ -18,7 +18,6 @@ import (
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/helpers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/pagination"
-	"gorm.io/gorm"
 )
 
 var (
@@ -145,7 +144,7 @@ var (
 							ctx.Context,
 							fmt.Sprintf("details:%s", feedbackID),
 							func(gctx golly.Context) (FeedbackDetails, error) {
-								return Service(gctx).FindFeedbackDetailsByFeedbackID_Unsafe(gctx, feedbackID)
+								return FeedbackService(gctx).FindDetailsByFeedbackID_Unsafe(gctx, feedbackID)
 							},
 						)
 					},
@@ -158,8 +157,77 @@ var (
 					Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
 						feedbackID := params.Source.(Feedback).ID
 
-						return Service(wctx.Context).
-							FindFeedbackSummary_Permissioned(wctx.Context, feedbackID)
+						return FeedbackService(wctx.Context).
+							FindSummary_Permissioned(wctx.Context, feedbackID)
+					},
+				}),
+			},
+		},
+	})
+
+	// type GroupedFeedbackResults struct {
+	// 	EmployeeID      uuid.UUID
+	// 	CollectionEndAt time.Time
+	// 	OrganizationID  uuid.UUID
+	// 	TotalSent      int
+	// 	TotalSubmitted int
+	// 	Feedbacks []Feedback
+	// }
+
+	groupedFeedback = graphql.NewObject(graphql.ObjectConfig{
+		Name: "GroupedFeedback",
+		Fields: graphql.Fields{
+
+			"employeeID": {
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(GroupedFeedbackResults).EmployeeID, nil
+				},
+			},
+
+			"totalSent": {
+				Type: graphql.NewNonNull(graphql.Int),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(GroupedFeedbackResults).TotalSent, nil
+				},
+			},
+
+			"collectionEndAt": {
+				Type: graphql.NewNonNull(graphql.DateTime),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(GroupedFeedbackResults).CollectionEndAt, nil
+				},
+			},
+
+			"totalSubmitted": {
+				Type: graphql.NewNonNull(graphql.Int),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(GroupedFeedbackResults).TotalSubmitted, nil
+				},
+			},
+
+			"feedbacks": {
+				Type: graphql.NewList(feedbackType),
+				Resolve: gql.NewHandler(gql.Options{
+					Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
+						return FeedbackService(wctx.Context).FindByIDs(wctx.Context,
+							params.Source.(GroupedFeedbackResults).FeedbackIDS,
+						)
+					},
+				}),
+			},
+			"employee": {
+				Type: graphql.NewNonNull(employees.EmployeeSimplified),
+				Resolve: gql.NewHandler(gql.Options{
+					Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
+						employeeID := params.Source.(GroupedFeedbackResults).EmployeeID
+
+						return wctx.Context.Loader().Fetch(
+							wctx.Context,
+							fmt.Sprintf("employee:%s", employeeID),
+							func(gctx golly.Context) (interface{}, error) {
+								return employees.Service(gctx).FindEmployeeByID(gctx, employeeID)
+							})
 					},
 				}),
 			},
@@ -175,9 +243,12 @@ var (
 			},
 			Resolve: gql.NewHandler(gql.Options{
 				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
-					feedback, err := Service(wctx.Context).FindFeedbackByID(wctx.Context,
-						uuid.MustParse(params.Args["id"].(string)),
-						common.UserIsManagerScope(wctx.Context, "feedbacks"))
+
+					feedback, err := FeedbackService(wctx.Context).
+						FindByID_Unsafe(wctx.Context,
+							uuid.MustParse(params.Args["id"].(string)),
+							common.OrganizationIDScopeForContext(wctx.Context),
+							common.UserIsManagerScope(wctx.Context, "feedbacks"))
 
 					if err != nil {
 						return nil, err
@@ -187,14 +258,15 @@ var (
 				},
 			}),
 		},
-		"feedbacks": {
-			Name: "feedbacks",
+
+		"groupedFeedbacks": {
+			Name: "groupedFeedbacks",
 			Args: graphql.FieldConfigArgument{
 				"pagination": &graphql.ArgumentConfig{
 					Type: pagination.PaginationInputType,
 				},
 			},
-			Type: pagination.PaginationType[Feedback](feedbackType),
+			Type: graphql.NewList(groupedFeedback),
 			Resolve: gql.NewHandler(gql.Options{
 				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
 					ident := identity.FromContext(wctx.Context)
@@ -207,27 +279,11 @@ var (
 						return nil, err
 					}
 
-					employeeIDs, err := employees.
-						Service(wctx.Context).
-						PluckEmployeeIDsByManagerID(wctx.Context, manager.ID)
-
-					if err != nil {
-						return nil, err
-					}
-
-					return pagination.
-						NewCursorPaginationFromArgs(
-							params.Args,
-							[]Feedback{},
-							common.OrganizationIDScopeForContext(wctx.Context),
-							func(db *gorm.DB) *gorm.DB {
-								return db.Where("employee_id IN ?", employeeIDs)
-							},
-						).
-						Paginate(wctx.Context)
+					return GroupedFeedback(wctx.Context, manager.ID, 50, 0)
 				},
 			}),
 		},
+
 		"feedbackForCode": {
 			Name: "feedbackForCode",
 			Args: graphql.FieldConfigArgument{
@@ -239,7 +295,9 @@ var (
 			Resolve: gql.NewHandler(gql.Options{
 				Public: true,
 				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
-					feedback, err := Service(wctx.Context).FindFeedbackForCode(wctx.Context, params.Args["code"].(string))
+					feedback, err := FeedbackService(wctx.Context).
+						FindForCode(wctx.Context, params.Args["code"].(string))
+
 					if err != nil {
 						return nil, err
 					}
@@ -269,7 +327,7 @@ var (
 						Service(wctx.Context).
 						FindEmployeeEmailsBySearch(wctx.Context, email)
 
-					fbEmails, _ := Service(wctx.Context).FindFeedbackEmailsBySearch(wctx.Context, email)
+					fbEmails, _ := FeedbackService(wctx.Context).PluckEmailsForSearch(wctx.Context, email)
 
 					sortable := sort.StringSlice(golly.Unique(append(empEmails, fbEmails...)))
 					sortable.Sort()
@@ -280,12 +338,6 @@ var (
 		},
 	}
 
-	// type CreateBulkFeedbackInput struct {
-	// 	EmployeeIDs      []uuid.UUID
-	// 	AdditionalEmails []string
-	// 	IncludeTeam      bool
-	// 	CollectionEndAt  time.Time
-	// }
 	createTeamInputType = graphql.NewInputObject(graphql.InputObjectConfig{
 		Name: "CreateFeedbacksInput",
 		Fields: graphql.InputObjectConfigFieldMap{
@@ -325,7 +377,9 @@ var (
 						return nil, err
 					}
 
-					fb, err := Service(wctx.Context).FindFeedbackByIDAndCode_Unsafe(wctx.Context, id, params.Args["code"].(string))
+					fb, err := FeedbackService(wctx.Context).
+						FindByIDAndCode_Unsafe(wctx.Context, id, params.Args["code"].(string))
+
 					if err != nil {
 						return nil, err
 					}
@@ -354,7 +408,8 @@ var (
 						return nil, err
 					}
 
-					fb, err := Service(wctx.Context).FindFeedbackByIDAndCode_Unsafe(wctx.Context, id, params.Args["code"].(string))
+					fb, err := FeedbackService(wctx.Context).
+						FindByIDAndCode_Unsafe(wctx.Context, id, params.Args["code"].(string))
 					if err != nil {
 						return nil, err
 					}
