@@ -16,7 +16,7 @@ const (
 	feedbackGroupQuery = `
 	SELECT 
 		employee_id, 
-		collection_end_at, 
+		MAX(collection_end_at) as collection_end_at, 
 		organization_id, 
 		string_agg(id%s, ',') AS feedback_ids,
 		SUM(
@@ -28,7 +28,7 @@ const (
 	FROM feedbacks
 	WHERE organization_id = @organizationID
 		AND employee_id IN @employeeIDs
-	GROUP BY 1, CAST(collection_end_at AS DATE), 3
+	GROUP BY employee_id, CAST(collection_end_at AS DATE), organization_id
 	ORDER BY employee_id, collection_end_at
 	LIMIT @limit OFFSET @offset
 `
@@ -68,9 +68,9 @@ func GroupedFeedback(gctx golly.Context, managerID uuid.UUID, limit, offset int)
 
 	gctx.Logger().Debugf("Loading for %#v", subordIDs)
 
-	str := "character varying"
-	if golly.Env().IsTest() {
-		str = ""
+	str := ""
+	if !golly.Env().IsTest() {
+		str = "::character varying"
 	}
 
 	query := fmt.Sprintf(feedbackGroupQuery, str)
