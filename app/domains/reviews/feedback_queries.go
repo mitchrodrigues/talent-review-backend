@@ -1,6 +1,7 @@
 package reviews
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -17,7 +18,7 @@ const (
 		employee_id, 
 		CAST(collection_end_at AS DATE) AS collection_end_at, 
 		organization_id, 
-		string_agg(id::character varying, ',') AS feedback_ids,
+		%s AS feedback_ids
 		SUM(
 			CASE
 			WHEN submitted_at IS NOT NULL THEN 1
@@ -65,9 +66,16 @@ func GroupedFeedback(gctx golly.Context, managerID uuid.UUID, limit, offset int)
 		return []GroupedFeedbackResults{}, err
 	}
 
+	str := "string_agg(id::character varying, ',')"
+	if golly.Env().IsTest() {
+		str = "string_agg(id)"
+	}
+
+	query := fmt.Sprintf(feedbackGroupQuery, str)
+
 	err = orm.
 		DB(gctx).
-		Raw(feedbackGroupQuery, map[string]interface{}{
+		Raw(query, map[string]interface{}{
 			"organizationID": ident.OrganizationID,
 			"employeeIDs":    subordIDs,
 			"limit":          limit,
