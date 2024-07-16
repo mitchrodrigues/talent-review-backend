@@ -16,7 +16,7 @@ const (
 	feedbackGroupQuery = `
 	SELECT 
 		employee_id, 
-		MAX(collection_end_at) as collection_end_at, 
+		%s as collection_end_at,
 		organization_id, 
 		string_agg(id%s, ',') AS feedback_ids,
 		SUM(
@@ -28,7 +28,7 @@ const (
 	FROM feedbacks
 	WHERE organization_id = @organizationID
 		AND employee_id IN @employeeIDs
-	GROUP BY employee_id, CAST(collection_end_at AS DATE), organization_id
+	GROUP BY 1, 2, 3
 	ORDER BY employee_id, collection_end_at
 	LIMIT @limit OFFSET @offset
 `
@@ -53,7 +53,7 @@ func GroupedFeedback(gctx golly.Context, managerID uuid.UUID, limit, offset int)
 	var rawResults []struct {
 		SubmittedCount  int
 		EmployeeID      uuid.UUID
-		CollectionEndAt time.Time
+		CollectionEndAt string `gorm:"type:date"`
 		OrganizationID  uuid.UUID
 		FeedbackIDs     string
 	}
@@ -73,7 +73,12 @@ func GroupedFeedback(gctx golly.Context, managerID uuid.UUID, limit, offset int)
 		str = "::character varying"
 	}
 
-	query := fmt.Sprintf(feedbackGroupQuery, str)
+	dateParser := "TO_CHAR(collection_end_at, 'YYYY-MM-DD')"
+	if golly.Env().IsTest() {
+		dateParser = "strftime('%Y-%m-%d', collection_end_at)"
+	}
+
+	query := fmt.Sprintf(feedbackGroupQuery, dateParser, str)
 
 	err = orm.
 		DB(gctx).
@@ -87,7 +92,7 @@ func GroupedFeedback(gctx golly.Context, managerID uuid.UUID, limit, offset int)
 		Error
 
 	if err != nil {
-		return results, nil
+		return results, err
 	}
 
 	for _, raw := range rawResults {
@@ -95,17 +100,19 @@ func GroupedFeedback(gctx golly.Context, managerID uuid.UUID, limit, offset int)
 			return uuid.MustParse(s)
 		})
 
+		t, err := time.Parse("2006-01-02", raw.CollectionEndAt)
 		if err != nil {
 			return results, err
 		}
 
 		results = append(results, GroupedFeedbackResults{
 			EmployeeID:      raw.EmployeeID,
-			CollectionEndAt: raw.CollectionEndAt,
-			OrganizationID:  raw.OrganizationID,
-			TotalSubmitted:  raw.SubmittedCount,
-			TotalSent:       len(feedbackIDs),
-			FeedbackIDS:     feedbackIDs,
+			CollectionEndAt: t,
+			// CollectionEndAt: raw.CollectionEndAt,
+			OrganizationID: raw.OrganizationID,
+			TotalSubmitted: raw.SubmittedCount,
+			TotalSent:      len(feedbackIDs),
+			FeedbackIDS:    feedbackIDs,
 		})
 	}
 
