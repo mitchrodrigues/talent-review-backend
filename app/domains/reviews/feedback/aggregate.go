@@ -48,7 +48,7 @@ type Aggregate struct {
 	Email string
 	Code  string
 
-	SubmittedAt     time.Time
+	SubmittedAt     *time.Time
 	CollectionEndAt time.Time
 
 	Details FeedbackDetails `gorm:"foreignKey:FeedbackID"`
@@ -102,7 +102,7 @@ func (feedback *Aggregate) Apply(ctx golly.Context, evt eventsource.Event) {
 		feedback.Summary.ActionItems = event.ActionItems
 
 	case Submitted:
-		feedback.SubmittedAt = evt.CreatedAt
+		feedback.SubmittedAt = &evt.CreatedAt
 
 	}
 }

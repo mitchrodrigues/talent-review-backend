@@ -42,7 +42,7 @@ func (DefaultReviewService) FindForCode(gctx golly.Context, code string) (Feedba
 }
 
 func (service DefaultReviewService) FindByID(gctx golly.Context, id uuid.UUID) (Feedback, error) {
-	return service.FindByID_Unsafe(gctx, id, common.OrganizationIDScopeForContext(gctx))
+	return service.FindByID_Unsafe(gctx, id, common.OrganizationIDScopeForContext(gctx, "feedbacks"))
 }
 
 func (DefaultReviewService) FindByIDs(gctx golly.Context, ids uuid.UUIDs) ([]Feedback, error) {
@@ -50,7 +50,7 @@ func (DefaultReviewService) FindByIDs(gctx golly.Context, ids uuid.UUIDs) ([]Fee
 
 	err := orm.
 		DB(gctx).
-		Scopes(common.OrganizationIDScopeForContext(gctx)).
+		Scopes(common.OrganizationIDScopeForContext(gctx, "feedbacks")).
 		Find(&feedbacks, "id IN ?", ids).
 		Error
 

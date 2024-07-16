@@ -24,7 +24,8 @@ const (
 			WHEN submitted_at IS NOT NULL THEN 1
 			ELSE 0
 			END
-		) as submitted_count
+		) as submitted_count,
+		COUNT(0) as sent_count
 	FROM feedbacks
 	WHERE organization_id = @organizationID
 		AND employee_id IN @employeeIDs
@@ -42,7 +43,7 @@ type GroupedFeedbackResults struct {
 	TotalSent      int
 	TotalSubmitted int
 
-	FeedbackIDS []uuid.UUID
+	FeedbackIDS uuid.UUIDs
 }
 
 func GroupedFeedback(gctx golly.Context, managerID uuid.UUID, limit, offset int) ([]GroupedFeedbackResults, error) {
@@ -52,6 +53,7 @@ func GroupedFeedback(gctx golly.Context, managerID uuid.UUID, limit, offset int)
 
 	var rawResults []struct {
 		SubmittedCount  int
+		SentCount       int
 		EmployeeID      uuid.UUID
 		CollectionEndAt string `gorm:"type:date"`
 		OrganizationID  uuid.UUID
@@ -87,6 +89,7 @@ func GroupedFeedback(gctx golly.Context, managerID uuid.UUID, limit, offset int)
 			"employeeIDs":    subordIDs,
 			"limit":          limit,
 			"offset":         offset,
+			"timezero":       time.Time{},
 		}).
 		Scan(&rawResults).
 		Error
@@ -96,23 +99,23 @@ func GroupedFeedback(gctx golly.Context, managerID uuid.UUID, limit, offset int)
 	}
 
 	for _, raw := range rawResults {
-		feedbackIDs := golly.Map(strings.Split(raw.FeedbackIDs, ","), func(s string) uuid.UUID {
-			return uuid.MustParse(s)
-		})
 
 		t, err := time.Parse("2006-01-02", raw.CollectionEndAt)
 		if err != nil {
 			return results, err
 		}
 
+		feedbackIDs := strings.Split(raw.FeedbackIDs, ",")
+
 		results = append(results, GroupedFeedbackResults{
 			EmployeeID:      raw.EmployeeID,
 			CollectionEndAt: t,
-			// CollectionEndAt: raw.CollectionEndAt,
-			OrganizationID: raw.OrganizationID,
-			TotalSubmitted: raw.SubmittedCount,
-			TotalSent:      len(feedbackIDs),
-			FeedbackIDS:    feedbackIDs,
+			OrganizationID:  raw.OrganizationID,
+			TotalSubmitted:  raw.SubmittedCount,
+			TotalSent:       raw.SentCount,
+			FeedbackIDS: golly.Map(feedbackIDs, func(id string) uuid.UUID {
+				return uuid.MustParse(id)
+			}),
 		})
 	}
 

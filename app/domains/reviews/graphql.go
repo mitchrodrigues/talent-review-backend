@@ -109,7 +109,7 @@ var (
 			"submittedAt": {
 				Type: graphql.DateTime,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if t := p.Source.(Feedback).SubmittedAt; t.IsZero() {
+					if t := p.Source.(Feedback).SubmittedAt; t == nil {
 						return nil, nil
 					}
 
@@ -247,7 +247,7 @@ var (
 					feedback, err := FeedbackService(wctx.Context).
 						FindByID_Unsafe(wctx.Context,
 							uuid.MustParse(params.Args["id"].(string)),
-							common.OrganizationIDScopeForContext(wctx.Context),
+							common.OrganizationIDScopeForContext(wctx.Context, "feedbacks"),
 							common.UserIsManagerScope(wctx.Context, "feedbacks"))
 
 					if err != nil {
