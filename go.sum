@@ -63,6 +63,8 @@ github.com/golly-go/plugins/gql v0.0.0-20240708075728-1dadf2cba570 h1:waaiNumKRY
 github.com/golly-go/plugins/gql v0.0.0-20240708075728-1dadf2cba570/go.mod h1:5XheNe4mx1h9Fn9O3D3kGCCu1B5+tHXTTHT1yL1qw1o=
 github.com/golly-go/plugins/orm v0.0.0-20240622214418-9135b61955c3 h1:aMbb9jIQXFkyxgYaGuMU+RH3+b8dN+NhSAe+9n9VbYA=
 github.com/golly-go/plugins/orm v0.0.0-20240622214418-9135b61955c3/go.mod h1:1DWeDi3aVGbJRcaVJ6m81w9ZIpjzHube5xo+IQErMxw=
+github.com/golly-go/plugins/orm v0.0.0-20240716054529-38f92aa8128f h1:iW5Yp88gOOPZdPWDdV61hH1DheYPnOm+KU/W3UsHXNE=
+github.com/golly-go/plugins/orm v0.0.0-20240716054529-38f92aa8128f/go.mod h1:1DWeDi3aVGbJRcaVJ6m81w9ZIpjzHube5xo+IQErMxw=
 github.com/golly-go/plugins/passport v0.0.0-20240614194328-e5cc8c23ee48 h1:MbNmq5ogu93S6AnIHXc0MtVVC2qy0ePEljMyfzMjlSg=
 github.com/golly-go/plugins/passport v0.0.0-20240614194328-e5cc8c23ee48/go.mod h1:5hkIjhOINAphb/C3LuJtG91/YflUiBGyLi7Wg9+hoVg=
 github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=

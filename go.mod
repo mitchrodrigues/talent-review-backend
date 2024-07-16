@@ -7,7 +7,7 @@ require (
 	github.com/golly-go/golly v0.4.1-0.20240704203050-3c4f3a889fca
 	github.com/golly-go/plugins/eventsource v0.0.0-20240709080818-046b88b7850a
 	github.com/golly-go/plugins/gql v0.0.0-20240708075728-1dadf2cba570
-	github.com/golly-go/plugins/orm v0.0.0-20240622214418-9135b61955c3
+	github.com/golly-go/plugins/orm v0.0.0-20240716054529-38f92aa8128f
 	github.com/golly-go/plugins/passport v0.0.0-20240614194328-e5cc8c23ee48
 	github.com/google/uuid v1.6.0
 	github.com/graphql-go/graphql v0.8.1

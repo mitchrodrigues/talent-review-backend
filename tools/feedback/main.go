@@ -1,14 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/golly-go/golly"
+	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/reviews"
 	"github.com/mitchrodrigues/talent-review-backend/app/initializers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/mailgun"
 	"github.com/spf13/cobra"
+	"gorm.io/gorm"
 )
 
 var commands = []*cobra.Command{
@@ -24,6 +27,12 @@ var commands = []*cobra.Command{
 		Args: cobra.MinimumNArgs(1),
 		Run:  golly.Command(submitFeedback),
 	},
+	{
+		Use:  "check [managerID]",
+		Long: "update tara summary for a feedback",
+		Args: cobra.MinimumNArgs(1),
+		Run:  golly.Command(checkFeedbacks),
+	},
 }
 
 func main() {
@@ -32,6 +41,26 @@ func main() {
 		Initializers: initializers.Initializers,
 		CLICommands:  commands,
 	})
+}
+
+func checkFeedbacks(gctx golly.Context, cmd *cobra.Command, args []string) error {
+
+	db := orm.DB(gctx).Session(&gorm.Session{
+		NewDB:  true,
+		Logger: orm.NewLogger("checkFeedbacks", false),
+	})
+
+	gctx = orm.SetDBOnContext(gctx, db)
+
+	id := uuid.MustParse(args[0])
+
+	results, err := reviews.GroupedFeedback(gctx, id, 50, 0)
+
+	b, _ := json.MarshalIndent(results, "", "\t")
+
+	fmt.Printf("GroupedFeedback: \n%s\n", string(b))
+
+	return err
 }
 
 func submitFeedback(gctx golly.Context, cmd *cobra.Command, args []string) error {
