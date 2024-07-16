@@ -10,6 +10,7 @@ import (
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/reviews"
 	"github.com/mitchrodrigues/talent-review-backend/app/initializers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/mailgun"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
 )
@@ -44,6 +45,10 @@ func main() {
 }
 
 func checkFeedbacks(gctx golly.Context, cmd *cobra.Command, args []string) error {
+	logger := gctx.Logger()
+
+	logger.Logger.SetLevel(logrus.DebugLevel)
+	gctx.SetLogger(logger)
 
 	db := orm.DB(gctx).Session(&gorm.Session{
 		NewDB:  true,
