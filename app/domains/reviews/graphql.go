@@ -106,6 +106,12 @@ var (
 					return p.Source.(Feedback).Email, nil
 				},
 			},
+			"code": {
+				Type: graphql.String,
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(Feedback).Code, nil
+				},
+			},
 			"submittedAt": {
 				Type: graphql.DateTime,
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
@@ -280,6 +286,17 @@ var (
 					}
 
 					return GroupedFeedback(wctx.Context, manager.ID, 50, 0)
+				},
+			}),
+		},
+
+		"myFeedbacks": {
+			Name: "myFeedbacks",
+			Type: graphql.NewList(feedbackType),
+			Resolve: gql.NewHandler(gql.Options{
+				Public: true,
+				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
+					return FeedbackService(wctx.Context).FindByContext(wctx.Context)
 				},
 			}),
 		},

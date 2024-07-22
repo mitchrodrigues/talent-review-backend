@@ -7,6 +7,7 @@ import (
 	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/common"
+	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 	"gorm.io/gorm"
 )
 
@@ -18,12 +19,14 @@ type ReviewService interface {
 	FindForCode(gctx golly.Context, code string) (Feedback, error)
 	FindByID(gctx golly.Context, id uuid.UUID) (Feedback, error)
 	FindByIDs(gctx golly.Context, id uuid.UUIDs) ([]Feedback, error)
+	FindByContext(gctx golly.Context) ([]Feedback, error)
 
 	PluckEmailsForSearch(gctx golly.Context, email string) ([]string, error)
 	FindSummary_Permissioned(gctx golly.Context, feedbackID uuid.UUID) (FeedbackSummary, error)
 
 	FindByID_Unsafe(gctx golly.Context, id uuid.UUID, scopes ...func(*gorm.DB) *gorm.DB) (Feedback, error)
 	FindByIDAndCode_Unsafe(gctx golly.Context, id uuid.UUID, code string) (Feedback, error)
+
 	FindDetailsByFeedbackID_Unsafe(gctx golly.Context, id uuid.UUID) (FeedbackDetails, error)
 }
 
@@ -43,6 +46,22 @@ func (DefaultReviewService) FindForCode(gctx golly.Context, code string) (Feedba
 
 func (service DefaultReviewService) FindByID(gctx golly.Context, id uuid.UUID) (Feedback, error) {
 	return service.FindByID_Unsafe(gctx, id, common.OrganizationIDScopeForContext(gctx, "feedbacks"))
+}
+
+func (service DefaultReviewService) FindByContext(gctx golly.Context) ([]Feedback, error) {
+	ident := identity.FromContext(gctx)
+
+	var feedbacks []Feedback
+
+	err := orm.
+		DB(gctx).
+		Scopes(common.OrganizationIDScopeForContext(gctx, "feedbacks")).
+		Joins("JOIN users ON users.id = ? AND users.email =  feedbacks.email", ident.UID).
+		Find(&feedbacks).
+		Error
+
+	return feedbacks, err
+
 }
 
 func (DefaultReviewService) FindByIDs(gctx golly.Context, ids uuid.UUIDs) ([]Feedback, error) {
@@ -78,18 +97,6 @@ func (DefaultReviewService) FindSummary_Permissioned(gctx golly.Context, feedbac
 		})
 }
 
-func (DefaultReviewService) FindDetailsByFeedbackID_Unsafe(gctx golly.Context, id uuid.UUID) (FeedbackDetails, error) {
-	var details FeedbackDetails
-
-	err := orm.
-		DB(gctx).
-		Model(details).
-		Find(&details, "feedback_id = ?", id).
-		Error
-
-	return details, err
-}
-
 func (DefaultReviewService) PluckEmailsForSearch(gctx golly.Context, email string) ([]string, error) {
 	var emails []string
 
@@ -103,6 +110,18 @@ func (DefaultReviewService) PluckEmailsForSearch(gctx golly.Context, email strin
 		Error
 
 	return emails, err
+}
+
+func (DefaultReviewService) FindDetailsByFeedbackID_Unsafe(gctx golly.Context, id uuid.UUID) (FeedbackDetails, error) {
+	var details FeedbackDetails
+
+	err := orm.
+		DB(gctx).
+		Model(details).
+		Find(&details, "feedback_id = ?", id).
+		Error
+
+	return details, err
 }
 
 func (DefaultReviewService) FindByID_Unsafe(gctx golly.Context, id uuid.UUID, scopes ...func(*gorm.DB) *gorm.DB) (Feedback, error) {

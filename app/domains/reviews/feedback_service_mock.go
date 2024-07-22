@@ -26,6 +26,11 @@ func (m *MockFeedbackService) FindByIDs(gctx golly.Context, id uuid.UUIDs) ([]Fe
 	return args.Get(0).([]Feedback), args.Error(1)
 }
 
+func (m *MockFeedbackService) FindByContext(gctx golly.Context) ([]Feedback, error) {
+	args := m.Called(gctx)
+	return args.Get(0).([]Feedback), args.Error(1)
+}
+
 func (m *MockFeedbackService) FindByID_Unsafe(gctx golly.Context, id uuid.UUID, scopes ...func(*gorm.DB) *gorm.DB) (Feedback, error) {
 	args := m.Called(gctx, id, scopes)
 	return args.Get(0).(Feedback), args.Error(1)
