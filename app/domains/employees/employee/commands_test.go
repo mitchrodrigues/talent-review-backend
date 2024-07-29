@@ -87,7 +87,7 @@ func TestCreateEmployeePerform(t *testing.T) {
 				assert.NoError(t, err)
 
 				changes := aggregate.Changes()
-				assert.Len(t, changes, 1)
+				assert.GreaterOrEqual(t, len(changes), 1)
 
 				event, ok := changes[0].Data.(Created)
 

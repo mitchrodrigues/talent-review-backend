@@ -49,9 +49,9 @@ func TestExtractOperatorAndValue(t *testing.T) {
 		wantOp   string
 		wantVal  interface{}
 	}{
-		{"contains", "test", "LIKE", "%test%"},
-		{"starts_with", "test", "LIKE", "test%"},
-		{"ends_with", "test", "LIKE", "%test"},
+		{"contains", "test", "ILIKE", "%test%"},
+		{"starts_with", "test", "ILIKE", "test%"},
+		{"ends_with", "test", "ILIKE", "%test"},
 		{"has", nil, "IS NOT NULL", nil},
 		{"is", "123", "=", "123"},
 		{"invalid", "test", "=", "test"},
@@ -120,7 +120,7 @@ func TestScopes(t *testing.T) {
 					"value":    "John",
 				},
 			},
-			wantQuery: "SELECT * FROM `dummy_models` WHERE name LIKE ?",
+			wantQuery: "SELECT * FROM `dummy_models` WHERE name ILIKE ?",
 			wantArgs:  []interface{}{"%John%"},
 		},
 		{
@@ -144,7 +144,7 @@ func TestScopes(t *testing.T) {
 					"value":    "Sales",
 				},
 			},
-			wantQuery: "SELECT * FROM `dummy_models` WHERE department LIKE ?",
+			wantQuery: "SELECT * FROM `dummy_models` WHERE department ILIKE ?",
 			wantArgs:  []interface{}{"Sales%"},
 		},
 		{
@@ -166,7 +166,7 @@ func TestScopes(t *testing.T) {
 					"value":    "Sales",
 				},
 			},
-			wantQuery: "SELECT * FROM `dummy_models` WHERE is_manager = ? AND age > ? AND department LIKE ?",
+			wantQuery: "SELECT * FROM `dummy_models` WHERE is_manager = ? AND age > ? AND department ILIKE ?",
 			wantArgs:  []interface{}{true, int64(30), "Sales%"},
 		},
 		{
