@@ -65,7 +65,7 @@ func convertRoles(gctx golly.Context, cmd *cobra.Command, args []string) error {
 				continue
 			}
 
-			err := eventsource.Call(gctx, &newRole, role.CreateEmployeeRole{
+			err := eventsource.Call(gctx, &newRole, role.Create{
 				Title:          oldRole.Title,
 				Level:          oldRole.Level,
 				OrganizationID: oldRole.OrganizationID,
