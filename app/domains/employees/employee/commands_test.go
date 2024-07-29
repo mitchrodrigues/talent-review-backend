@@ -49,30 +49,6 @@ func TestCreateEmployeePerform(t *testing.T) {
 				Email: "jane.smith@example.com",
 			},
 		},
-		// {
-		// 	name: "invalid level for IC",
-		// 	cmd: Create{
-		// 		Name:           "Invalid IC",
-		// 		Email:          "invalid.ic@example.com",
-		// 		OrganizationID: uuid.New(),
-		// 		Manager:        false,
-		// 		WorkerType:     "contractor",
-		// 		Level:          6, // invalid level for IC
-		// 	},
-		// 	expectErr: true,
-		// },
-		// {
-		// 	name: "invalid level for Manager",
-		// 	cmd: Create{
-		// 		Name:           "Invalid Manager",
-		// 		Email:          "invalid.manager@example.com",
-		// 		OrganizationID: uuid.New(),
-		// 		Manager:        true,
-		// 		WorkerType:     "full-time",
-		// 		Level:          8, // invalid level for Manager
-		// 	},
-		// 	expectErr: true,
-		// },
 	}
 
 	for _, tt := range tests {

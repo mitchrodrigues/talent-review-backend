@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/orm"
@@ -23,9 +24,8 @@ var commands = []*cobra.Command{
 		Run:  golly.Command(testEmail),
 	},
 	{
-		Use:  "update-summary [feedbackID]",
+		Use:  "update-summary",
 		Long: "update tara summary for a feedback",
-		Args: cobra.MinimumNArgs(1),
 		Run:  golly.Command(submitFeedback),
 	},
 	{
@@ -69,16 +69,27 @@ func checkFeedbacks(gctx golly.Context, cmd *cobra.Command, args []string) error
 }
 
 func submitFeedback(gctx golly.Context, cmd *cobra.Command, args []string) error {
-	fb, err := reviews.FeedbackService(gctx).FindByID_Unsafe(gctx, uuid.MustParse(args[0]))
-	if err != nil {
-		return err
+	var feedbacks []reviews.Feedback
+
+	var wg sync.WaitGroup
+
+	orm.DB(gctx).
+		Model(&feedbacks).
+		Joins("LEFT JOIN feedback_summaries summary ON summary.feedback_id = feedbacks.id").
+		Where("summary.id IS NULL AND feedbacks.submitted_at IS NOT NULL").
+		Find(&feedbacks)
+
+	for _, feedback := range feedbacks {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			reviews.UpdateFeedbackSummary(gctx, &feedback.Aggregate)
+		}()
 	}
 
-	if fb.ID == uuid.Nil {
-		return fmt.Errorf("no such feedback %s", args[0])
-	}
+	wg.Wait()
 
-	return reviews.UpdateFeedbackSummary(gctx, &fb.Aggregate)
+	return nil
 }
 
 func testEmail(gctx golly.Context, cmd *cobra.Command, args []string) error {
