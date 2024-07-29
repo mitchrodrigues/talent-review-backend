@@ -1,16 +1,16 @@
 package employee
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Created struct {
-	ID             uuid.UUID          `json:"id"`
-	Name           string             `json:"name"`
-	Email          string             `json:"email"`
-	OrganizationID uuid.UUID          `json:"organizationID"`
-	Level          int                `json:"level"`
-	Type           EmployeeType       `json:"type"`
-	WorkerType     EmployeeWorkerType `json:"workerType"`
-	UserID         *uuid.UUID         `json:"userID"`
+	ID             uuid.UUID `json:"id"`
+	Name           string    `json:"name"`
+	Email          string    `json:"email"`
+	OrganizationID uuid.UUID `json:"organizationID"`
 }
 
 type Updated struct {
@@ -25,9 +25,30 @@ type UserUpdated struct {
 }
 
 type TeamUpdated struct {
-	TeamID uuid.UUID `json:"teamID"`
+	TeamID *uuid.UUID `json:"teamID"`
 }
 
 type TitleUpdated struct {
 	Title string `json:"teamID"`
+}
+
+type ManagerUpdated struct {
+	ManagerID *uuid.UUID `json:"managerID"`
+}
+
+type PersonalDetailsUpdated struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type WorkerTypeUpdated struct {
+	WorkerType EmployeeWorkerType `json:"workerType"`
+}
+
+type RoleUpdated struct {
+	EmployeeRoleID uuid.UUID
+}
+
+type Terminate struct {
+	TerminatedAt time.Time
 }

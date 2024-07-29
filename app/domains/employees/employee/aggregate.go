@@ -1,6 +1,8 @@
 package employee
 
 import (
+	"time"
+
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/eventsource"
 	"github.com/golly-go/plugins/orm"
@@ -23,14 +25,7 @@ import (
 // deleted_at TIMESTAMP,
 // PRIMARY KEY(id)
 
-type EmployeeType string
-
 type EmployeeLevel string
-
-const (
-	IC      EmployeeType = "IC"
-	Manager EmployeeType = "MNG"
-)
 
 type EmployeeWorkerType string
 
@@ -40,6 +35,20 @@ const (
 	FTE              EmployeeWorkerType = "FTE"
 )
 
+type EmployeeHistory struct {
+	orm.ModelUUID
+
+	EmployeeID uuid.UUID  `gorm:"type:uuid;not null"`
+	UserID     uuid.UUID  `gorm:"type:uuid;not null"`
+	Change     ChangeData `gorm:"type:jsonb;not null"`
+}
+
+type ChangeData struct {
+	Previous interface{} `json:"previous"`
+	Current  interface{} `json:"current"`
+	Field    string      `json:"field"`
+}
+
 type Aggregate struct {
 	eventsource.AggregateBase
 
@@ -47,15 +56,17 @@ type Aggregate struct {
 
 	Name  string
 	Email string
-	Title string
 
 	OrganizationID uuid.UUID
+	ManagerID      *uuid.UUID
 	UserID         *uuid.UUID
 	TeamID         *uuid.UUID
 
-	Level      int
-	Type       EmployeeType
 	WorkerType EmployeeWorkerType
+
+	EmployeeRoleID uuid.UUID
+
+	TerminatedAt *time.Time
 }
 
 func (*Aggregate) Topic() string                             { return "events.employees" }
@@ -71,36 +82,34 @@ func (employee *Aggregate) Apply(ctx golly.Context, evt eventsource.Event) {
 		employee.ID = event.ID
 		employee.Name = event.Name
 		employee.Email = event.Email
-		employee.Level = event.Level
-		employee.Type = event.Type
-		employee.WorkerType = event.WorkerType
-
 		employee.OrganizationID = event.OrganizationID
-		employee.UserID = event.UserID
 
 		employee.CreatedAt = evt.CreatedAt
-		employee.UpdatedAt = evt.CreatedAt
-
-	case TitleUpdated:
-		employee.Title = event.Title
-		employee.UpdatedAt = evt.CreatedAt
 
 	case UserUpdated:
 		employee.UserID = &event.UserID
-		employee.UpdatedAt = evt.CreatedAt
 
 	case TeamUpdated:
-		employee.TeamID = &event.TeamID
-		employee.UpdatedAt = evt.CreatedAt
+		employee.TeamID = event.TeamID
+
+	case ManagerUpdated:
+		employee.ManagerID = event.ManagerID
 
 	case Updated:
 		employee.Name = event.Name
 		employee.Email = event.Email
-		employee.Level = event.Level
-		employee.WorkerType = event.WorkerType
-		employee.UpdatedAt = evt.CreatedAt
 
+	case WorkerTypeUpdated:
+		employee.WorkerType = event.WorkerType
+
+	case RoleUpdated:
+		employee.EmployeeRoleID = event.EmployeeRoleID
+
+	case Terminate:
+		employee.TerminatedAt = &event.TerminatedAt
 	}
+
+	employee.UpdatedAt = evt.CreatedAt
 }
 
 var _ eventsource.Aggregate = &Aggregate{}

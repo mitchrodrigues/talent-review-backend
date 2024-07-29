@@ -27,17 +27,12 @@ func TestCreateEmployeePerform(t *testing.T) {
 				Name:           "John Doe",
 				Email:          "john.doe@example.com",
 				OrganizationID: uuid.New(),
-				Manager:        false,
 				WorkerType:     "full-time",
-				Level:          3,
 			},
 			expectErr: false,
 			expected: Created{
-				Name:       "John Doe",
-				Email:      "john.doe@example.com",
-				Level:      3,
-				Type:       IC,
-				WorkerType: "full-time",
+				Name:  "John Doe",
+				Email: "john.doe@example.com",
 			},
 		},
 		{
@@ -46,17 +41,12 @@ func TestCreateEmployeePerform(t *testing.T) {
 				Name:           "Jane Smith",
 				Email:          "jane.smith@example.com",
 				OrganizationID: uuid.New(),
-				Manager:        true,
 				WorkerType:     "part-time",
-				Level:          5,
 			},
 			expectErr: false,
 			expected: Created{
-				Name:       "Jane Smith",
-				Email:      "jane.smith@example.com",
-				Level:      5,
-				Type:       Manager,
-				WorkerType: "part-time",
+				Name:  "Jane Smith",
+				Email: "jane.smith@example.com",
 			},
 		},
 		// {
@@ -105,9 +95,6 @@ func TestCreateEmployeePerform(t *testing.T) {
 				assert.Equal(t, tt.cmd.Name, event.Name)
 				assert.Equal(t, tt.cmd.Email, event.Email)
 				assert.Equal(t, tt.cmd.OrganizationID, event.OrganizationID)
-				assert.Equal(t, tt.expected.Level, event.Level)
-				assert.Equal(t, tt.expected.Type, event.Type)
-				assert.Equal(t, tt.expected.WorkerType, event.WorkerType)
 			}
 		})
 	}

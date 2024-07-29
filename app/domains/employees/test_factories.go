@@ -27,13 +27,13 @@ func NewTestEmployeeWithTeam(id, organizationID uuid.UUID, email string, teamID 
 	return employee
 }
 
-func NewTestTeam(id, organizationID, managerID uuid.UUID) Team {
+func NewTestTeam(id, organizationID uuid.UUID, leadID *uuid.UUID) Team {
 	return Team{
 		Aggregate: teams.Aggregate{
 			ModelUUID: orm.ModelUUID{
 				ID: id,
 			},
-			ManagerID:      managerID,
+			LeadID:         leadID,
 			OrganizationID: organizationID,
 		},
 	}

@@ -19,18 +19,22 @@ type EmployeeService interface {
 	FindEmployeeByUserID(gctx golly.Context, userID uuid.UUID) (Employee, error)
 	FindEmployeesByIDS(gctx golly.Context, ids uuid.UUIDs) ([]Employee, error)
 	FindEmployeesForTeam(gctx golly.Context, teamID uuid.UUID, excludeEmployees ...uuid.UUID) ([]Employee, error)
-	FindEmployeesByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error)
-	FindEmployeesByManagerUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) ([]Employee, error)
+	FindEmployeesByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(*gorm.DB) *gorm.DB) ([]Employee, error)
+	FindEmployeesByManagerUserID(gctx golly.Context, userID uuid.UUID, scopes ...func(*gorm.DB) *gorm.DB) ([]Employee, error)
 	FindEmployeeByEmailAndOrganizationID(gctx golly.Context, email string, organizationID uuid.UUID) (Employee, error)
 	FindEmployeesByManagerAndIDS(gctx golly.Context, managerID uuid.UUID, employeeIDs ...uuid.UUID) ([]Employee, error)
 	FindEmployeeByID(gctx golly.Context, id uuid.UUID) (Employee, error)
 	FindEmployeeEmailsBySearch(gctx golly.Context, name string) ([]string, error)
 
-	PluckEmployeeIDsByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(db *gorm.DB) *gorm.DB) (uuid.UUIDs, error)
+	PluckEmployeeIDsByManagerID(gctx golly.Context, managerID uuid.UUID, scopes ...func(*gorm.DB) *gorm.DB) (uuid.UUIDs, error)
+	PluckIDByUserID(gctx golly.Context, userID uuid.UUID) uuid.UUID
 
 	// Teams
 	FindTeamsByOrganizationID(gctx golly.Context, organizationID uuid.UUID) ([]Team, error)
 	FindTeamByID(gctx golly.Context, id uuid.UUID) (Team, error)
+
+	// Roles
+	FindRoleByID(gctx golly.Context, id uuid.UUID) (EmployeeRole, error)
 
 	// Unsafe
 	FindEmployeeByID_Unsafe(gctx golly.Context, id uuid.UUID) (Employee, error)
@@ -99,13 +103,26 @@ func (s DefaultEmployeeService) FindEmployeesByManagerID(
 	var employees []Employee
 
 	err := baseEmployeeQuery(gctx).
-		Joins("JOIN teams ON employees.team_id = teams.id").
 		Scopes(scopes...).
-		Where("teams.manager_id = ?", managerID).
+		Where("employees.manager_id = ?", managerID).
 		Find(&employees).
 		Error
 
 	return employees, err
+}
+
+func (s DefaultEmployeeService) PluckIDByUserID(gctx golly.Context, userID uuid.UUID) uuid.UUID {
+	var ids uuid.UUIDs
+
+	baseEmployeeQuery(gctx).Where("user_id = ?", userID).
+		Limit(1).
+		Pluck("employees.id", &ids)
+
+	if len(ids) == 0 {
+		return uuid.Nil
+	}
+
+	return ids[0]
 }
 
 func (s DefaultEmployeeService) PluckEmployeeIDsByManagerID(
@@ -116,9 +133,8 @@ func (s DefaultEmployeeService) PluckEmployeeIDsByManagerID(
 	var employeeIDs uuid.UUIDs
 
 	err := baseEmployeeQuery(gctx).
-		Joins("JOIN teams ON employees.team_id = teams.id").
 		Scopes(scopes...).
-		Where("teams.manager_id = ?", managerID).
+		Where("employees.manager_id = ?", managerID).
 		Pluck("employees.id", &employeeIDs).
 		Error
 
@@ -162,8 +178,7 @@ func (s DefaultEmployeeService) FindEmployeesByManagerAndIDS(
 	var employees []Employee
 
 	err := baseEmployeeQuery(gctx).
-		Joins("JOIN teams ON employees.team_id = teams.id").
-		Where("teams.manager_id = ?", managerID).
+		Where("employees.manager_id = ?", managerID).
 		Where("employees.id IN (?)", employeeIDs).
 		Find(&employees).
 		Error
@@ -244,6 +259,23 @@ func (s DefaultEmployeeService) FindTeamByID(
 		Error
 
 	return team, err
+}
+
+func (s DefaultEmployeeService) FindRoleByID(gctx golly.Context, id uuid.UUID) (EmployeeRole, error) {
+	var empRole EmployeeRole
+
+	if id == uuid.Nil {
+		return empRole, nil
+	}
+
+	err := orm.
+		DB(gctx).
+		Model(&empRole).
+		Scopes(common.OrganizationIDScopeForContext(gctx)).
+		Find(&empRole, "id = ?", id).
+		Error
+
+	return empRole, err
 }
 
 func (s DefaultEmployeeService) DefaultPreloads(db *gorm.DB) *gorm.DB {

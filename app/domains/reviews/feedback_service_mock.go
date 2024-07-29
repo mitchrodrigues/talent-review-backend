@@ -26,8 +26,8 @@ func (m *MockFeedbackService) FindByIDs(gctx golly.Context, id uuid.UUIDs) ([]Fe
 	return args.Get(0).([]Feedback), args.Error(1)
 }
 
-func (m *MockFeedbackService) FindByContext(gctx golly.Context) ([]Feedback, error) {
-	args := m.Called(gctx)
+func (m *MockFeedbackService) FindAll_Permissioned(gctx golly.Context, scopes ...func(*gorm.DB) *gorm.DB) ([]Feedback, error) {
+	args := m.Called(gctx, scopes)
 	return args.Get(0).([]Feedback), args.Error(1)
 }
 

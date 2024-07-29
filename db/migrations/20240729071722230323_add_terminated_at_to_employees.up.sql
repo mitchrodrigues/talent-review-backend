@@ -1,0 +1,4 @@
+-- Up Migration 20240729071722230323 add_terminated_at_to_employees
+
+ALTER TABLE employees ADD COLUMN terminated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+

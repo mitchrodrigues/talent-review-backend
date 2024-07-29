@@ -16,15 +16,13 @@ import (
 type Create struct {
 	Name  string `validate:"required"`
 	Email string `validate:"email"`
-	Title string
 
 	OrganizationID uuid.UUID `validate:"required"`
-	Manager        bool
 
-	WorkerType EmployeeWorkerType
-	Level      int `validate:"lt=10"`
-
-	TeamID uuid.UUID
+	WorkerType     EmployeeWorkerType `validate:"required"`
+	TeamID         uuid.UUID
+	ManagerID      uuid.UUID
+	EmployeeRoleID uuid.UUID
 }
 
 func (cmd Create) Validate(ctx golly.Context, aggregate eventsource.Aggregate) error {
@@ -44,35 +42,31 @@ func (cmd Create) Validate(ctx golly.Context, aggregate eventsource.Aggregate) e
 func (cmd Create) Perform(ctx golly.Context, aggregate eventsource.Aggregate) error {
 	id, _ := uuid.NewV7()
 
-	tpe := IC
-	if cmd.Manager {
-		tpe = Manager
-	}
-
-	var userID *uuid.UUID
-	if user, err := accounts.FindUserByEmail(ctx, cmd.Email); err != nil && user.ID != uuid.Nil {
-		userID = &user.ID
-	}
-
-	workerType := EmployeeWorkerType(strings.TrimSpace(string(cmd.WorkerType)))
-
 	eventsource.Apply(ctx, aggregate, Created{
 		ID:             id,
 		Name:           cmd.Name,
 		Email:          cmd.Email,
 		OrganizationID: cmd.OrganizationID,
-		Level:          cmd.Level,
-		Type:           tpe,
-		WorkerType:     workerType,
-		UserID:         userID,
 	})
 
-	if cmd.TeamID != uuid.Nil {
-		eventsource.Apply(ctx, aggregate, TeamUpdated{cmd.TeamID})
+	if user, err := accounts.FindUserByEmail(ctx, cmd.Email); err != nil && user.ID != uuid.Nil {
+		eventsource.Apply(ctx, aggregate, UserUpdated{user.ID})
 	}
 
-	if cmd.Title != "" {
-		eventsource.Apply(ctx, aggregate, TitleUpdated{cmd.Title})
+	if cmd.WorkerType != "" {
+		eventsource.Apply(ctx, aggregate, WorkerTypeUpdated{EmployeeWorkerType(strings.TrimSpace(string(cmd.WorkerType)))})
+	}
+
+	if cmd.EmployeeRoleID != uuid.Nil {
+		eventsource.Apply(ctx, aggregate, RoleUpdated{cmd.EmployeeRoleID})
+	}
+
+	if cmd.ManagerID != uuid.Nil {
+		eventsource.Apply(ctx, aggregate, ManagerUpdated{&cmd.ManagerID})
+	}
+
+	if cmd.TeamID != uuid.Nil {
+		eventsource.Apply(ctx, aggregate, TeamUpdated{&cmd.TeamID})
 	}
 
 	return nil
@@ -81,36 +75,38 @@ func (cmd Create) Perform(ctx golly.Context, aggregate eventsource.Aggregate) er
 type Update struct {
 	Email string
 	Name  string
-	Level int
 
-	Title      string
 	WorkerType EmployeeWorkerType
 	TeamID     uuid.UUID
+	ManagerID  uuid.UUID
+
+	EmployeeRoleID uuid.UUID
 }
 
 func (cmd Update) Perform(ctx golly.Context, aggregate eventsource.Aggregate) error {
 	employee := aggregate.(*Aggregate)
 
-	level := employee.Level
-	if cmd.Level != 0 {
-		level = cmd.Level
+	if cmd.Name != "" || cmd.Email != "" {
+		eventsource.Apply(ctx, aggregate, PersonalDetailsUpdated{
+			Name:  helpers.Coalesce(cmd.Name, employee.Name),
+			Email: helpers.Coalesce(cmd.Email, employee.Email),
+		})
 	}
 
-	workerType := EmployeeWorkerType(helpers.Coalesce(strings.TrimSpace(string(cmd.WorkerType)), strings.TrimSpace(string(employee.WorkerType))))
-
-	eventsource.Apply(ctx, aggregate, Updated{
-		Name:       helpers.Coalesce(cmd.Name, employee.Name),
-		Email:      helpers.Coalesce(cmd.Email, employee.Email),
-		Level:      level,
-		WorkerType: workerType,
-	})
+	if cmd.WorkerType != "" {
+		eventsource.Apply(ctx, aggregate, EmployeeWorkerType(strings.TrimSpace(string(cmd.WorkerType))))
+	}
 
 	if cmd.TeamID != uuid.Nil {
-		eventsource.Apply(ctx, aggregate, TeamUpdated{cmd.TeamID})
+		eventsource.Apply(ctx, aggregate, TeamUpdated{&cmd.TeamID})
 	}
 
-	if cmd.Title != "" {
-		eventsource.Apply(ctx, aggregate, TitleUpdated{cmd.Title})
+	if cmd.ManagerID != uuid.Nil {
+		eventsource.Apply(ctx, aggregate, ManagerUpdated{&cmd.ManagerID})
+	}
+
+	if cmd.EmployeeRoleID != uuid.Nil {
+		eventsource.Apply(ctx, aggregate, RoleUpdated{cmd.EmployeeRoleID})
 	}
 
 	return nil
@@ -122,16 +118,5 @@ type UpdateUser struct {
 
 func (cmd UpdateUser) Perform(gctx golly.Context, aggregate eventsource.Aggregate) error {
 	eventsource.Apply(gctx, aggregate, UserUpdated(cmd))
-
-	return nil
-}
-
-type UpdateTeam struct {
-	TeamID uuid.UUID
-}
-
-func (cmd UpdateTeam) Perform(gctx golly.Context, aggregate eventsource.Aggregate) error {
-	eventsource.Apply(gctx, aggregate, TeamUpdated(cmd))
-
 	return nil
 }

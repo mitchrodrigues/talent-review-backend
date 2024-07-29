@@ -28,7 +28,10 @@ cover:
 	$(GOTEST) -v -coverprofile=coverage.out ./...
 	$(GOCOVER) -html=coverage.out -o coverage
 
-development:
+
+development: dev
+
+dev:
 	air -c .air.toml
 
 ci: test lint

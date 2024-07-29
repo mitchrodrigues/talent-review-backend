@@ -14,6 +14,7 @@ func PaginationType[T any](object *graphql.Object) *graphql.Object {
 	return graphql.NewObject(graphql.ObjectConfig{
 		Name: "Paginated" + object.Name(),
 		Fields: graphql.Fields{
+			"pageInfo": {Type: PaginationInfo},
 			"edges": &graphql.Field{
 				Type: graphql.NewNonNull(graphql.NewList(graphql.NewObject(graphql.ObjectConfig{
 					Name: object.Name() + "Edge",
@@ -32,21 +33,6 @@ func PaginationType[T any](object *graphql.Object) *graphql.Object {
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					return p.Source.(*CursorPagination[T]).Edges, nil
 				},
-			},
-			"totalCount": &graphql.Field{
-				Type: graphql.Int,
-			},
-			"hasNext": &graphql.Field{
-				Type: graphql.Boolean,
-			},
-			"hasPrev": &graphql.Field{
-				Type: graphql.Boolean,
-			},
-			"nextCursor": &graphql.Field{
-				Type: graphql.String,
-			},
-			"prevCursor": &graphql.Field{
-				Type: graphql.String,
 			},
 		},
 	})
@@ -73,6 +59,27 @@ var PaginationInputType = graphql.NewInputObject(
 var PagiantionArgs = &graphql.ArgumentConfig{
 	Type: PaginationInputType,
 }
+
+var PaginationInfo = graphql.NewObject(graphql.ObjectConfig{
+	Name: "PageInfo",
+	Fields: graphql.Fields{
+		"totalCount": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"hasNext": &graphql.Field{
+			Type: graphql.Boolean,
+		},
+		"hasPrev": &graphql.Field{
+			Type: graphql.Boolean,
+		},
+		"nextCursor": &graphql.Field{
+			Type: graphql.String,
+		},
+		"prevCursor": &graphql.Field{
+			Type: graphql.String,
+		},
+	},
+})
 
 // PaginationOptionsFromArgs extracts pagination options from GraphQL arguments
 func PaginationOptionsFromArgs[T any](args map[string]interface{}, model []T) Options[T] {

@@ -15,7 +15,7 @@ type Aggregate struct {
 
 	Name string
 
-	ManagerID      uuid.UUID
+	LeadID         *uuid.UUID
 	OrganizationID uuid.UUID
 }
 
@@ -28,20 +28,22 @@ func (team *Aggregate) SetID(id string) { team.ID, _ = uuid.Parse(id) }
 
 func (team *Aggregate) Apply(ctx golly.Context, evt eventsource.Event) {
 	switch event := evt.Data.(type) {
-	case TeamCreated:
+	case Created:
 		team.ID = event.ID
-		team.ManagerID = event.ManagerID
+		team.LeadID = event.LeadID
 		team.OrganizationID = event.OrganizationID
 		team.Name = event.Name
 
 		team.CreatedAt = evt.CreatedAt
 		team.UpdatedAt = evt.CreatedAt
 
-	case TeamUpdated:
+	case Updated:
 		team.Name = event.Name
-		team.ManagerID = event.ManagerID
-		team.UpdatedAt = evt.CreatedAt
+		if event.LeadID != nil {
+			team.LeadID = event.LeadID
+		}
 
+		team.UpdatedAt = evt.CreatedAt
 	}
 }
 

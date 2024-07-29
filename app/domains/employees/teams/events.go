@@ -2,15 +2,14 @@ package teams
 
 import "github.com/google/uuid"
 
-type TeamCreated struct {
+type Created struct {
 	ID             uuid.UUID
-	ManagerID      uuid.UUID
+	LeadID         *uuid.UUID `json:"omitempty"`
 	OrganizationID uuid.UUID
-
-	Name string
+	Name           string
 }
 
-type TeamUpdated struct {
-	Name      string
-	ManagerID uuid.UUID
+type Updated struct {
+	Name   string
+	LeadID *uuid.UUID `json:"teamID,omitempty"`
 }

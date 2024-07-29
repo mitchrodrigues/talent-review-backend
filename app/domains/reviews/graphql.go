@@ -3,6 +3,7 @@ package reviews
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/common"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/employees"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/reviews/feedback"
+	"github.com/mitchrodrigues/talent-review-backend/app/utils/filters"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/helpers"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 	"github.com/mitchrodrigues/talent-review-backend/app/utils/pagination"
@@ -123,7 +125,7 @@ var (
 				},
 			},
 			"employee": {
-				Type: employees.EmployeeSimplified,
+				Type: employees.EmployeeGQLType,
 				Resolve: gql.NewHandler(gql.Options{
 					Public: true,
 					Handler: func(ctx golly.WebContext, params gql.Params) (interface{}, error) {
@@ -223,7 +225,7 @@ var (
 				}),
 			},
 			"employee": {
-				Type: graphql.NewNonNull(employees.EmployeeSimplified),
+				Type: graphql.NewNonNull(employees.EmployeeGQLType),
 				Resolve: gql.NewHandler(gql.Options{
 					Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
 						employeeID := params.Source.(GroupedFeedbackResults).EmployeeID
@@ -237,6 +239,28 @@ var (
 					},
 				}),
 			},
+		},
+	})
+
+	feedbackFilter = filters.NewFilter("Feedback", map[string]filters.FieldType{
+		"employeeID": {
+			Kind:        reflect.String,
+			DBFieldName: "feedbacks.employee_id",
+		},
+		"active": {
+			Kind:           reflect.Bool,
+			DBFieldName:    "collectionEndAt",
+			BoolExpression: "CAST(creation_end_at AS DATE) <= CURRENT_DATE())",
+		},
+		"completed": {
+			Kind:           reflect.Bool,
+			DBFieldName:    "submittedAt",
+			BoolExpression: "submitted_at IS NOT NULL",
+		},
+		"assignedToMe": {
+			Kind:           reflect.Bool,
+			DBFieldName:    "feedbacks.email",
+			BoolExpression: "feedbacks.email = manager.email",
 		},
 	})
 
@@ -264,7 +288,24 @@ var (
 				},
 			}),
 		},
+		"feedbacks": {
+			Type: graphql.NewList(feedbackType),
+			Args: graphql.FieldConfigArgument{
+				"pagination": {Type: pagination.PaginationInputType},
+				"filters":    feedbackFilter.Args,
+			},
+			Resolve: gql.NewHandler(gql.Options{
+				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
+					scopes, err := feedbackFilter.Scopes(wctx.Context, params.Args["filters"])
+					if err != nil {
+						return nil, err
+					}
 
+					return FeedbackService(wctx.Context).
+						FindAll_Permissioned(wctx.Context, scopes...)
+				},
+			}),
+		},
 		"groupedFeedbacks": {
 			Name: "groupedFeedbacks",
 			Args: graphql.FieldConfigArgument{
@@ -286,17 +327,6 @@ var (
 					}
 
 					return GroupedFeedback(wctx.Context, manager.ID, 50, 0)
-				},
-			}),
-		},
-
-		"myFeedbacks": {
-			Name: "myFeedbacks",
-			Type: graphql.NewList(feedbackType),
-			Resolve: gql.NewHandler(gql.Options{
-				Public: true,
-				Handler: func(wctx golly.WebContext, params gql.Params) (interface{}, error) {
-					return FeedbackService(wctx.Context).FindByContext(wctx.Context)
 				},
 			}),
 		},

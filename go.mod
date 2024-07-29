@@ -13,7 +13,6 @@ require (
 	github.com/graphql-go/graphql v0.8.1
 	github.com/jinzhu/gorm v1.9.16
 	github.com/lestrrat-go/jwx/v2 v2.1.0
-	github.com/magiconair/properties v1.8.7
 	github.com/mailgun/mailgun-go/v4 v4.12.0
 	github.com/osteele/liquid v1.4.0
 	github.com/sirupsen/logrus v1.9.3
@@ -21,6 +20,7 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/workos/workos-go/v4 v4.13.0
+	gorm.io/driver/sqlite v1.5.6
 	gorm.io/gorm v1.25.10
 )
 
@@ -52,6 +52,7 @@ require (
 	github.com/lestrrat-go/iter v1.0.2 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/lib/pq v1.3.0 // indirect
+	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -82,7 +83,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/postgres v1.5.9 // indirect
-	gorm.io/driver/sqlite v1.5.6 // indirect
 )
 
 // replace github.com/golly-go/plugins/mongo => ../../golly-go/plugins/mongo

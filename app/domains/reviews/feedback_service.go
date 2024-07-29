@@ -7,7 +7,6 @@ import (
 	"github.com/golly-go/plugins/orm"
 	"github.com/google/uuid"
 	"github.com/mitchrodrigues/talent-review-backend/app/domains/common"
-	"github.com/mitchrodrigues/talent-review-backend/app/utils/identity"
 	"gorm.io/gorm"
 )
 
@@ -19,10 +18,10 @@ type ReviewService interface {
 	FindForCode(gctx golly.Context, code string) (Feedback, error)
 	FindByID(gctx golly.Context, id uuid.UUID) (Feedback, error)
 	FindByIDs(gctx golly.Context, id uuid.UUIDs) ([]Feedback, error)
-	FindByContext(gctx golly.Context) ([]Feedback, error)
 
 	PluckEmailsForSearch(gctx golly.Context, email string) ([]string, error)
 	FindSummary_Permissioned(gctx golly.Context, feedbackID uuid.UUID) (FeedbackSummary, error)
+	FindAll_Permissioned(gctx golly.Context, scopes ...func(*gorm.DB) *gorm.DB) ([]Feedback, error)
 
 	FindByID_Unsafe(gctx golly.Context, id uuid.UUID, scopes ...func(*gorm.DB) *gorm.DB) (Feedback, error)
 	FindByIDAndCode_Unsafe(gctx golly.Context, id uuid.UUID, code string) (Feedback, error)
@@ -48,20 +47,21 @@ func (service DefaultReviewService) FindByID(gctx golly.Context, id uuid.UUID) (
 	return service.FindByID_Unsafe(gctx, id, common.OrganizationIDScopeForContext(gctx, "feedbacks"))
 }
 
-func (service DefaultReviewService) FindByContext(gctx golly.Context) ([]Feedback, error) {
-	ident := identity.FromContext(gctx)
-
+func (service DefaultReviewService) FindAll_Permissioned(gctx golly.Context, scopes ...func(*gorm.DB) *gorm.DB) ([]Feedback, error) {
 	var feedbacks []Feedback
 
 	err := orm.
 		DB(gctx).
-		Scopes(common.OrganizationIDScopeForContext(gctx, "feedbacks")).
-		Joins("JOIN users ON users.id = ? AND users.email =  feedbacks.email", ident.UID).
+		Scopes(
+			common.OrganizationIDScopeForContext(gctx, "feedbacks"),
+			common.JoinUserEmployeeRecord(gctx)).
+		Scopes(scopes...).
+		Joins("JOIN employees employee ON employee.id = feedbacks.employee_id").
+		Where("user_employee_record.id = employee.manager_id OR feedbacks.email = user_employee_record.email").
 		Find(&feedbacks).
 		Error
 
 	return feedbacks, err
-
 }
 
 func (DefaultReviewService) FindByIDs(gctx golly.Context, ids uuid.UUIDs) ([]Feedback, error) {

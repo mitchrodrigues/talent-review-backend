@@ -38,8 +38,24 @@ func EmailScope(email string) func(*gorm.DB) *gorm.DB {
 func UserIsManagerScope(gctx golly.Context, table string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		ident := identity.FromContext(gctx)
-		return db.Joins(fmt.Sprintf("JOIN employees employee ON %s.employee_id = employee.id", table)).
-			Joins("JOIN employees manager ON manager.user_id = ?", ident.UID).
-			Joins("JOIN teams team ON employee.team_id IS NOT NULL AND team.id = employee.team_id AND team.manager_id = manager.id")
+		return db.Joins("JOIN employees manager ON manager.user_id = ?", ident.UID).Joins(
+			fmt.Sprintf("JOIN employees employee ON %s.employee_id = employee.id AND manager.id = employee.manager_id", table),
+		)
+	}
+}
+
+func UserIsManagerLeftJoinsScope(gctx golly.Context, table string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		ident := identity.FromContext(gctx)
+		return db.Joins(
+			fmt.Sprintf("LEFT JOIN employees employee ON %s.employee_id = employee.id", table)).
+			Joins("LEFT JOIN employees current_user ON current_user.id = ?", ident.EmployeeID)
+	}
+}
+
+func JoinUserEmployeeRecord(gctx golly.Context) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		ident := identity.FromContext(gctx)
+		return db.Joins("LEFT JOIN employees user_employee_record ON user_employee_record.id = ?", ident.EmployeeID)
 	}
 }

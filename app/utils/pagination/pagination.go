@@ -4,9 +4,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/golly-go/golly"
 	"github.com/golly-go/plugins/orm"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -57,6 +59,21 @@ func (cp *CursorPagination[T]) SetScopes(scopes ...func(*gorm.DB) *gorm.DB) *Cur
 	if len(scopes) > 0 {
 		cp.Scopes = append(cp.Scopes, scopes...)
 	}
+
+	return cp
+}
+
+func (cp *CursorPagination[T]) Cache(gctx golly.Context, keyPattern string) *CursorPagination[T] {
+	golly.Each(cp.Edges, func(edge Edge[T]) {
+		id, err := getIDAsString(edge.Node)
+		if err != nil {
+			return
+		}
+
+		gctx.Loader().Fetch(gctx, fmt.Sprintf(keyPattern, id), func(golly.Context) (interface{}, error) {
+			return edge.Node, nil
+		})
+	})
 
 	return cp
 }
@@ -127,4 +144,31 @@ func decodeCursor(cursor string) (int, error) {
 		return 0, err
 	}
 	return offset, nil
+}
+
+func getIDAsString(v interface{}) (string, error) {
+	val := reflect.ValueOf(v)
+	// Check if the input is a pointer, and get the underlying value if it is
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	// Ensure we're working with a struct
+	if val.Kind() != reflect.Struct {
+		return "", fmt.Errorf("input is not a struct")
+	}
+
+	// Get the field by name
+	field := val.FieldByName("ID")
+	if !field.IsValid() {
+		return "", fmt.Errorf("no such field: ID")
+	}
+
+	// Ensure the field is of type uuid.UUID
+	if field.Type() != reflect.TypeOf(uuid.UUID{}) {
+		return "", fmt.Errorf("field ID is not of type uuid.UUID")
+	}
+
+	// Convert the UUID to string
+	return field.Interface().(uuid.UUID).String(), nil
 }

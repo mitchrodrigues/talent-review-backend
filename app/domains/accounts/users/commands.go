@@ -24,6 +24,8 @@ type CreateUser struct {
 	FirstName string
 	LastName  string
 	Password  string
+
+	SkipWorkOS string
 }
 
 func (cmd CreateUser) Validate(gctx golly.Context, aggregate eventsource.Aggregate) error {

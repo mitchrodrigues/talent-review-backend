@@ -9,6 +9,7 @@ import (
 type Identity struct {
 	UID            uuid.UUID
 	OrganizationID uuid.UUID
+	EmployeeID     uuid.UUID
 }
 
 var _ passport.Identity = Identity{}
@@ -36,7 +37,7 @@ func FromContext(gctx golly.Context) Identity {
 }
 
 func NewTestIdentity(gctx golly.Context) (Identity, golly.Context) {
-	ident := Identity{uuid.New(), uuid.New()}
+	ident := Identity{uuid.New(), uuid.New(), uuid.New()}
 
 	gctx = passport.ToContext(gctx, ident)
 

@@ -66,6 +66,11 @@ func (m *MockEmployeeService) FindEmployeeByID_Unsafe(gctx golly.Context, id uui
 	return args.Get(0).(Employee), args.Error(1)
 }
 
+func (m *MockEmployeeService) FindRoleByID(gctx golly.Context, id uuid.UUID) (EmployeeRole, error) {
+	args := m.Called(gctx, id)
+	return args.Get(0).(EmployeeRole), args.Error(1)
+}
+
 func (m *MockEmployeeService) FindTeamsByOrganizationID(gctx golly.Context, organizationID uuid.UUID) ([]Team, error) {
 	args := m.Called(gctx, organizationID)
 	return args.Get(0).([]Team), args.Error(1)
@@ -74,6 +79,11 @@ func (m *MockEmployeeService) FindTeamsByOrganizationID(gctx golly.Context, orga
 func (m *MockEmployeeService) FindTeamByID(gctx golly.Context, id uuid.UUID) (Team, error) {
 	args := m.Called(gctx, id)
 	return args.Get(0).(Team), args.Error(1)
+}
+
+func (m *MockEmployeeService) PluckIDByUserID(gctx golly.Context, id uuid.UUID) uuid.UUID {
+	args := m.Called(gctx, id)
+	return args.Get(0).(uuid.UUID)
 }
 
 var _ EmployeeService = &MockEmployeeService{}

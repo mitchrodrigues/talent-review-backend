@@ -11,7 +11,7 @@ const (
 	LargeTokenModel AIModel = "gpt-4o"
 	StandardModel   AIModel = "gpt-4o"
 	FastModel       AIModel = "gpt-4o"
-	TurboModel      AIModel = "gpt-3.5-turbo-16k"
+	TurboModel      AIModel = "gpt-4o"
 
 	EmbeddingModel AIModel = "text-embedding-ada-002"
 	WhisperModel   AIModel = "whipser-1"

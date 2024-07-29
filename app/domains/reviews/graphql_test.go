@@ -68,10 +68,11 @@ func TestFeedbacks(t *testing.T) {
 	manager := employees.NewTestEmployee(uuid.New(), organizationID, "manager@example.com", &managerUserID)
 	orm.DB(gctx).Create(&manager)
 
-	team := employees.NewTestTeam(uuid.New(), manager.OrganizationID, manager.ID)
+	team := employees.NewTestTeam(uuid.New(), manager.OrganizationID, &manager.ID)
 	orm.DB(gctx).Create(&team)
 
 	employee := employees.NewTestEmployeeWithTeam(uuid.New(), organizationID, "testemployee@example.com", team.ID)
+	employee.ManagerID = &manager.ID
 
 	orm.DB(gctx).Create(&employee)
 
@@ -520,17 +521,21 @@ func TestCreateFeedbacks_Integration(t *testing.T) {
 	managerUserID := uuid.New()
 	organizationID := uuid.New()
 
-	manager := employees.NewTestEmployee(uuid.New(), organizationID, "manager@example.com", &managerUserID)
-	orm.DB(gctx).Create(&manager)
+	lead := employees.NewTestEmployee(uuid.New(), organizationID, "manager@example.com", &managerUserID)
+	orm.DB(gctx).Create(&lead)
 
 	// Team with the manager
-	team := employees.NewTestTeam(uuid.New(), organizationID, manager.ID)
+	team := employees.NewTestTeam(uuid.New(), organizationID, &lead.ID)
 	orm.DB(gctx).Create(&team)
 
 	// Employees in the team
 	emps := make([]employees.Employee, 2)
 	for pos := range emps {
-		emps[pos] = employees.NewTestEmployeeWithTeam(uuid.New(), organizationID, fmt.Sprintf("testemployee+%d@example.com", pos), team.ID)
+		emp := employees.NewTestEmployeeWithTeam(uuid.New(), organizationID, fmt.Sprintf("testemployee+%d@example.com", pos), team.ID)
+		emp.ManagerID = &lead.ID
+
+		emps[pos] = emp
+
 		orm.DB(gctx).Create(&emps[pos])
 	}
 
